@@ -1,0 +1,13 @@
+{
+  "expo": {
+    "name": "Draft Subastas",
+    "slug": "draft-subastas",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "splash": { "resizeMode": "contain", "backgroundColor": "#0B1020" },
+    "android": { "package": "com.draftsubastas.app" },
+    "ios": { "supportsTablet": true, "bundleIdentifier": "com.draftsubastas.app" }
+  }
+}

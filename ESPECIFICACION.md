@@ -51,13 +51,11 @@ Si deja de cumplirlo, su botón se desactiva solo.
 para pujar y aún tiene huecos vacíos, esos huecos se rellenan
 automáticamente con los ítems que van quedando, en orden, sin coste.
 
-> Punto abierto: hay dos formas de aplicarlo y hay que elegir una antes de
-> programar el motor.
-> - **(A) Al final**: la partida sigue normal y, al terminar la lista, los
->   huecos vacíos se rellenan con los ítems sobrantes en orden. *(Asumo esta
->   por defecto: mantiene la subasta viva hasta el final.)*
-> - **(B) En caliente**: en cuanto un jugador se queda sin dinero, se le
->   asigna directamente el/los siguientes ítems que salgan hasta completar.
+Se aplica al **final de la partida** (decisión tomada): la subasta sigue su
+curso normal hasta agotar la lista, y solo entonces los huecos vacíos se
+rellenan, en orden, con los ítems sobrantes (los que quedaron sin subastar y
+los que nadie quiso). El reparto es por rondas entre los jugadores
+incompletos, siguiendo el orden de jugador.
 
 **Fin de partida.** Termina cuando todos los jugadores tienen los huecos
 llenos, o cuando se agota la lista de ítems (y entonces se aplica A).
