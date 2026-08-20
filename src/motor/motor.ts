@@ -16,6 +16,18 @@ export function barajar<T>(xs: T[], rng: () => number = Math.random): T[] {
   return copia;
 }
 
+/**
+ * Saca al azar `cantidad` ítems de la lista del tema. Cada partida juega solo
+ * con una parte de la lista, así que dos partidas del mismo tema no se repiten.
+ */
+export function sortearItems(
+  items: Item[],
+  cantidad: number,
+  rng: () => number = Math.random,
+): Item[] {
+  return barajar(items, rng).slice(0, Math.min(cantidad, items.length));
+}
+
 export function crearPartida(
   config: Config,
   nombres: string[],

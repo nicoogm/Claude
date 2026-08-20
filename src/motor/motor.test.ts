@@ -8,6 +8,7 @@ import {
   puedePujar,
   pujar,
   pujaMinimaActual,
+  sortearItems,
 } from './motor.ts';
 import type { Config, Item, Partida } from './tipos.ts';
 
@@ -184,5 +185,33 @@ describe('fin de partida y auto-relleno (opción A)', () => {
     while (q.fase === 'subasta') q = adjudicar(q); // nadie puja nunca
     assert.ok(q.jugadores.every((x) => x.plantilla.length === 3));
     assert.equal(q.descartados.length, 40 - 9);
+  });
+});
+
+describe('sorteo de ítems', () => {
+  it('saca la cantidad pedida sin repetir', () => {
+    const sorteados = sortearItems(items(100), 18);
+    assert.equal(sorteados.length, 18);
+    assert.equal(new Set(sorteados.map((i) => i.id)).size, 18);
+  });
+
+  it('no pide más de lo que hay en la lista', () => {
+    assert.equal(sortearItems(items(5), 20).length, 5);
+  });
+
+  it('dos sorteos del mismo tema no dan la misma lista', () => {
+    const lista = items(100);
+    const a = sortearItems(lista, 18).map((i) => i.id).join();
+    const b = sortearItems(lista, 18).map((i) => i.id).join();
+    assert.notEqual(a, b);
+  });
+
+  it('todos los ítems de la lista pueden salir', () => {
+    const lista = items(30);
+    const vistos = new Set<string>();
+    for (let i = 0; i < 200; i++) {
+      for (const it of sortearItems(lista, 9)) vistos.add(it.id);
+    }
+    assert.equal(vistos.size, 30);
   });
 });

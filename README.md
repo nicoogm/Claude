@@ -28,7 +28,8 @@ npm start          # escanea el QR con la app Expo Go
 App.tsx              navegación entre pantallas
 src/motor/           reglas del juego (funciones puras, sin UI) + tests
 src/estado/          store de la partida, con deshacer
-src/datos/temas.ts   temas precargados
+src/datos/temas.ts   temas precargados (~100 ítems cada uno)
+tools/               empaquetado de la versión web
 src/pantallas/       configuración, tema, subasta, resultados, votación
 src/ui/tema.ts       colores y estilos comunes
 ```

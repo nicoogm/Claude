@@ -16,7 +16,8 @@ export default function SeleccionTema({
     <ScrollView style={S.pantalla} contentContainerStyle={{ paddingBottom: 40 }}>
       <Text style={S.titulo}>¿De qué va el draft?</Text>
       <Text style={S.subtitulo}>
-        Necesitáis al menos {itemsNecesarios} ítems para llenar todas las plantillas.
+        De la lista que elijáis se sortearán {itemsNecesarios} ítems para esta
+        partida.
       </Text>
 
       {TEMAS.map((t) => {
@@ -32,11 +33,12 @@ export default function SeleccionTema({
               {t.titulo}
             </Text>
             <Text style={{ color: C.textoSuave, marginTop: 4 }}>
-              {t.items.length} ítems · {t.items.slice(0, 3).map((i) => i.nombre).join(', ')}…
+              {itemsNecesarios} de {t.items.length} · {' '}
+              {t.items.slice(0, 3).map((i) => i.nombre).join(', ')}…
             </Text>
             {!suficiente && (
               <Text style={{ color: C.aviso, marginTop: 6, fontSize: 13 }}>
-                Lista demasiado corta para esta configuración
+                Solo tiene {t.items.length} ítems
               </Text>
             )}
           </TouchableOpacity>

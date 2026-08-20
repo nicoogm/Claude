@@ -14,17 +14,22 @@ export type Ajustes = {
   huecos: number;
   pujaMin: number;
   incremento: number;
-  ordenAleatorio: boolean;
+  /** Cuántos ítems se sortean de la lista del tema para esta partida. */
+  itemsEnJuego: number;
 };
 
 const AJUSTES_INICIALES: Ajustes = {
-  nombres: ['Jugador 1', 'Jugador 2', 'Jugador 3'],
+  nombres: ['', '', ''],
   presupuesto: 20,
   huecos: 3,
   pujaMin: 1,
   incremento: 1,
-  ordenAleatorio: true,
+  itemsEnJuego: 18,
 };
+
+/** Nombre por defecto para quien no escriba el suyo. */
+export const nombreDe = (nombre: string, i: number) =>
+  nombre.trim() || `Jugador ${i + 1}`;
 
 function Contador({
   etiqueta, valor, min, max, onChange,
@@ -80,11 +85,24 @@ export default function Configuracion({
   const set = <K extends keyof Ajustes>(k: K, v: Ajustes[K]) =>
     setA((prev) => ({ ...prev, [k]: v }));
 
+  const minimoItems = a.nombres.length * a.huecos;
+
   const cambiarNumJugadores = (n: number) => {
     const nombres = [...a.nombres];
-    while (nombres.length < n) nombres.push(`Jugador ${nombres.length + 1}`);
-    set('nombres', nombres.slice(0, n));
+    while (nombres.length < n) nombres.push('');
+    setA((prev) => ({
+      ...prev,
+      nombres: nombres.slice(0, n),
+      itemsEnJuego: Math.max(prev.itemsEnJuego, n * prev.huecos),
+    }));
   };
+
+  const cambiarHuecos = (h: number) =>
+    setA((prev) => ({
+      ...prev,
+      huecos: h,
+      itemsEnJuego: Math.max(prev.itemsEnJuego, prev.nombres.length * h),
+    }));
 
   const renombrar = (i: number, nombre: string) =>
     set('nombres', a.nombres.map((n, k) => (k === i ? nombre : n)));
@@ -114,7 +132,7 @@ export default function Configuracion({
             <TextInput
               value={nombre}
               onChangeText={(t) => renombrar(i, t)}
-              placeholder={`Jugador ${i + 1}`}
+              placeholder={`Nombre del jugador ${i + 1}`}
               placeholderTextColor={C.textoSuave}
               maxLength={14}
               style={{
@@ -137,7 +155,7 @@ export default function Configuracion({
         <Contador
           etiqueta="Huecos por jugador"
           valor={a.huecos} min={1} max={11}
-          onChange={(v) => set('huecos', v)}
+          onChange={cambiarHuecos}
         />
         <Contador
           etiqueta="Puja mínima (€)"
@@ -149,29 +167,28 @@ export default function Configuracion({
           valor={a.incremento} min={1} max={10}
           onChange={(v) => set('incremento', v)}
         />
-        <TouchableOpacity
-          onPress={() => set('ordenAleatorio', !a.ordenAleatorio)}
-          style={[S.fila, { justifyContent: 'space-between', marginTop: 4 }]}
-        >
-          <Text style={{ color: C.texto, fontSize: 16, flex: 1 }}>
-            Orden aleatorio de los ítems
-          </Text>
-          <View
-            style={{
-              width: 52, height: 32, borderRadius: 16, padding: 3,
-              backgroundColor: a.ordenAleatorio ? C.acento : C.panelAlt,
-              alignItems: a.ordenAleatorio ? 'flex-end' : 'flex-start',
-            }}
-          >
-            <View
-              style={{ width: 26, height: 26, borderRadius: 13,
-                       backgroundColor: a.ordenAleatorio ? '#06210F' : C.textoSuave }}
-            />
-          </View>
-        </TouchableOpacity>
       </View>
 
-      <TouchableOpacity style={S.boton} onPress={() => onContinuar(a)}>
+      <View style={S.tarjeta}>
+        <Text style={S.etiqueta}>Sorteo</Text>
+        <Contador
+          etiqueta="Ítems que salen a subasta"
+          valor={a.itemsEnJuego}
+          min={minimoItems}
+          max={60}
+          onChange={(v) => set('itemsEnJuego', v)}
+        />
+        <Text style={{ color: C.textoSuave, fontSize: 13, lineHeight: 19 }}>
+          Se eligen al azar entre todos los del tema, así que cada partida sale
+          distinta. Con {a.nombres.length} jugadores y {a.huecos} huecos hacen
+          falta {minimoItems} como mínimo.
+        </Text>
+      </View>
+
+      <TouchableOpacity
+        style={S.boton}
+        onPress={() => onContinuar({ ...a, nombres: a.nombres.map(nombreDe) })}
+      >
         <Text style={S.botonTexto}>Elegir tema →</Text>
       </TouchableOpacity>
     </ScrollView>

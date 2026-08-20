@@ -11,7 +11,7 @@ el resto canta en voz alta.
 | Modo de juego | Un único móvil como consola de subasta. Sin backend, sin cuentas, sin internet. |
 | Rol del portador | Es el "subastador": lee el ítem en voz alta y registra pujas. Puede jugar o no (configurable). |
 | Falta de dinero | Auto-relleno: cuando ya nadie puede pujar, los huecos vacíos se completan con los siguientes ítems de la lista, por orden. |
-| Temas | 8-10 listas precargadas + editor para crear listas propias, guardadas en el móvil. |
+| Temas | 10 listas precargadas de ~100 ítems + editor para crear listas propias. De cada lista se sortean los ítems de la partida. |
 | Ganador | No automático. Se muestran las plantillas y el grupo vota dentro de la app. |
 
 ## 2. Parámetros configurables
@@ -20,8 +20,10 @@ el resto canta en voz alta.
 - Presupuesto por jugador (por defecto 20 €).
 - Número de huecos por jugador (por defecto 3).
 - Tema / lista de ítems.
+- Ítems que salen a subasta: de la lista del tema (80-115 nombres cada una) se
+  sortean solo los de esta partida, así que dos partidas del mismo tema no se
+  parecen. Por defecto 18, con un mínimo de jugadores × huecos.
 - Puja mínima inicial (por defecto 1 €) e incremento mínimo (por defecto 1 €).
-- Orden de aparición de los ítems: aleatorio o el orden de la lista.
 
 ## 3. Flujo de la partida
 

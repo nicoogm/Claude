@@ -6,6 +6,7 @@ import Subasta from './src/pantallas/Subasta.tsx';
 import Resultados from './src/pantallas/Resultados.tsx';
 import Votacion from './src/pantallas/Votacion.tsx';
 import { usePartida } from './src/estado/partida.ts';
+import { sortearItems } from './src/motor/motor.ts';
 import type { Tema } from './src/motor/tipos.ts';
 import { C } from './src/ui/tema.ts';
 
@@ -25,10 +26,11 @@ export default function App() {
         huecos: ajustes.huecos,
         pujaMin: ajustes.pujaMin,
         incremento: ajustes.incremento,
-        ordenAleatorio: ajustes.ordenAleatorio,
+        ordenAleatorio: true,
       },
       ajustes.nombres,
-      tema.items,
+      // Cada partida juega con un puñado de ítems sacados al azar del tema.
+      sortearItems(tema.items, ajustes.itemsEnJuego),
     );
     setVista('juego');
   };
@@ -53,7 +55,7 @@ export default function App() {
 
         {vista === 'tema' && ajustes && (
           <SeleccionTema
-            itemsNecesarios={ajustes.nombres.length * ajustes.huecos}
+            itemsNecesarios={ajustes.itemsEnJuego}
             onElegir={empezar}
             onVolver={() => setVista('config')}
           />
