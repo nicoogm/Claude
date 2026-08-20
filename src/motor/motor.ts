@@ -136,12 +136,19 @@ export function descartar(p: Partida): Partida {
 const plantillasCompletas = (p: Partida): boolean =>
   p.jugadores.every((j) => huecosLibres(j, p.config) === 0);
 
+/** ¿Queda alguien capaz de pujar por el siguiente ítem? */
+const quedanPujadores = (p: Partida): boolean =>
+  p.jugadores.some(
+    (j) => huecosLibres(j, p.config) > 0 && j.dinero >= p.config.pujaMin,
+  );
+
 /**
- * Saca el siguiente ítem a subasta. Si ya no quedan ítems o todo el mundo
- * tiene la plantilla llena, cierra la partida aplicando el auto-relleno.
+ * Saca el siguiente ítem a subasta. La partida se cierra —aplicando el
+ * auto-relleno— cuando todas las plantillas están llenas, cuando se agota la
+ * lista o cuando ya nadie tiene dinero para seguir pujando.
  */
 function siguienteItem(p: Partida): Partida {
-  if (plantillasCompletas(p) || p.mazo.length === 0) {
+  if (plantillasCompletas(p) || p.mazo.length === 0 || !quedanPujadores(p)) {
     return aplicarAutoRelleno({ ...p, subasta: null, fase: 'resultados' });
   }
   const [item, ...resto] = p.mazo;
@@ -153,10 +160,10 @@ function siguienteItem(p: Partida): Partida {
 }
 
 /**
- * Regla acordada (opción A): al terminar la partida, los huecos vacíos se
- * rellenan gratis con los ítems sobrantes —primero los que no llegaron a
- * subastarse y después los descartados— repartidos por rondas entre los
- * jugadores incompletos, en orden de jugador.
+ * Regla acordada: cuando la partida se cierra con huecos vacíos, estos se
+ * rellenan gratis con los ítems que vienen a continuación —primero los que no
+ * llegaron a subastarse, en su orden, y después los descartados— repartidos
+ * por rondas entre los jugadores incompletos, en orden de jugador.
  */
 export function aplicarAutoRelleno(p: Partida): Partida {
   const bombo = [...p.mazo, ...p.descartados];

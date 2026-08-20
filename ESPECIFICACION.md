@@ -10,7 +10,7 @@ el resto canta en voz alta.
 |---|---|
 | Modo de juego | Un único móvil como consola de subasta. Sin backend, sin cuentas, sin internet. |
 | Rol del portador | Es el "subastador": lee el ítem en voz alta y registra pujas. Puede jugar o no (configurable). |
-| Falta de dinero | Auto-relleno: quien no pueda seguir pujando recibe automáticamente ítems para completar sus huecos. |
+| Falta de dinero | Auto-relleno: cuando ya nadie puede pujar, los huecos vacíos se completan con los siguientes ítems de la lista, por orden. |
 | Temas | 8-10 listas precargadas + editor para crear listas propias, guardadas en el móvil. |
 | Ganador | No automático. Se muestran las plantillas y el grupo vota dentro de la app. |
 
@@ -51,14 +51,14 @@ Si deja de cumplirlo, su botón se desactiva solo.
 para pujar y aún tiene huecos vacíos, esos huecos se rellenan
 automáticamente con los ítems que van quedando, en orden, sin coste.
 
-Se aplica al **final de la partida** (decisión tomada): la subasta sigue su
-curso normal hasta agotar la lista, y solo entonces los huecos vacíos se
-rellenan, en orden, con los ítems sobrantes (los que quedaron sin subastar y
-los que nadie quiso). El reparto es por rondas entre los jugadores
-incompletos, siguiendo el orden de jugador.
+La partida **se corta en cuanto ya nadie puede pujar** (nadie con huecos
+libres conserva dinero para la puja mínima) y los huecos vacíos se rellenan
+con los ítems que venían a continuación, en su orden, repartidos por rondas
+entre los jugadores incompletos. No se recorre el resto de la lista.
 
 **Fin de partida.** Termina cuando todos los jugadores tienen los huecos
-llenos, o cuando se agota la lista de ítems (y entonces se aplica A).
+llenos, cuando ya nadie puede pujar o cuando se agota la lista de ítems. En
+los dos últimos casos se aplica el auto-relleno.
 
 **Justicia del turno.** Nadie tiene turno fijo de puja: es subasta abierta a
 viva voz. El único orden que importa es el de los ítems.

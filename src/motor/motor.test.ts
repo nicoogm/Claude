@@ -115,7 +115,23 @@ describe('fin de partida y auto-relleno (opción A)', () => {
     assert.ok(p.jugadores.every((x) => x.plantilla.length === 3));
   });
 
-  it('la subasta sigue viva hasta el final aunque alguien se arruine', () => {
+  it('corta y reparte en cuanto ya nadie puede pujar', () => {
+    // 12 ítems, pero los tres jugadores se funden el presupuesto en el primero.
+    let p = nueva(12, { presupuesto: 5 });
+    p = compra(p, 'j1', 5);
+    p = compra(p, 'j2', 5);
+    assert.equal(p.fase, 'subasta');
+    p = compra(p, 'j3', 5); // nadie tiene ya dinero: se cierra la partida
+    assert.equal(p.fase, 'resultados');
+    // Los huecos se llenan con los siguientes ítems en orden, por rondas.
+    assert.deepEqual(j(p, 'j1').plantilla.map((a) => a.item.id), ['i1', 'i4', 'i7']);
+    assert.deepEqual(j(p, 'j2').plantilla.map((a) => a.item.id), ['i2', 'i5', 'i8']);
+    assert.deepEqual(j(p, 'j3').plantilla.map((a) => a.item.id), ['i3', 'i6', 'i9']);
+    // No se recorre el resto de la lista.
+    assert.deepEqual(p.descartados.map((i) => i.id), ['i10', 'i11', 'i12']);
+  });
+
+  it('sigue la subasta mientras alguien conserve dinero', () => {
     let p = nueva();
     p = compra(p, 'j1', 20); // j1 se queda a 0 con 2 huecos libres
     assert.equal(p.fase, 'subasta');
