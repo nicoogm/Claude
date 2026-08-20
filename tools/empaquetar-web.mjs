@@ -1,6 +1,10 @@
 // Mete el bundle web exportado por Expo dentro de un único HTML autocontenido,
 // que es lo que admite el visor de artefactos (sin peticiones a otros hosts).
 //   npx expo export -p web --output-dir dist && node tools/empaquetar-web.mjs <salida.html>
+//
+// Con --completo envuelve el resultado en un documento HTML entero, que es lo
+// que necesita cualquier sitio normal (GitHub Pages, abrirlo a mano, etc.);
+// sin la opción sale el fragmento que espera el visor de artefactos.
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
 import { globSync } from 'node:fs';
 
@@ -81,6 +85,18 @@ const html = `<meta charset="utf-8" />
 </script>
 `;
 
-const salida = process.argv[2] ?? 'draft-subastas.html';
-writeFileSync(salida, html);
-console.log(`${salida} · ${Math.round(html.length / 1024)} KB`);
+const completo = process.argv.includes('--completo');
+const salida = process.argv.find((x, i) => i > 1 && !x.startsWith('--')) ?? 'draft-subastas.html';
+
+const documento = completo
+  ? `<!doctype html>
+<html lang="es">
+<head>
+${html.trimEnd()}
+</body>
+</html>
+`.replace('<div id="root"></div>', '</head>\n<body>\n<div id="root"></div>')
+  : html;
+
+writeFileSync(salida, documento);
+console.log(`${salida} · ${Math.round(documento.length / 1024)} KB${completo ? ' · documento completo' : ''}`);
