@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ScrollView, Text, TextInput, View } from 'react-native';
+import { DIVISAS, divisaPorId } from '../datos/divisas.ts';
 import { C, F, S, colorJugador } from '../ui/tema.ts';
 import { Aparecer, Boton, Pulsable } from '../ui/componentes.tsx';
 
@@ -11,6 +12,7 @@ export type Ajustes = {
   incremento: number;
   /** Cuántos ítems se sortean de la lista del tema para esta partida. */
   itemsEnJuego: number;
+  monedaId: string;
 };
 
 const AJUSTES_INICIALES: Ajustes = {
@@ -20,6 +22,7 @@ const AJUSTES_INICIALES: Ajustes = {
   pujaMin: 1,
   incremento: 1,
   itemsEnJuego: 18,
+  monedaId: 'cabras',
 };
 
 /** Nombre por defecto para quien no escriba el suyo. */
@@ -101,8 +104,8 @@ export default function Configuracion({ onContinuar }: { onContinuar: (a: Ajuste
           Abrimos la sala
         </Text>
         <Text style={[S.cuerpo, { marginTop: 8, marginBottom: 22 }]}>
-          Un solo móvil hace de mesa. Tú cantas los lotes en voz alta y registras
-          las pujas que griten los demás.
+          Un solo móvil hace de mesa. Sale un lote, y por turnos cada uno sube
+          la puja o se planta. El último en pie se lo lleva.
         </Text>
       </Aparecer>
 
@@ -145,9 +148,40 @@ export default function Configuracion({ onContinuar }: { onContinuar: (a: Ajuste
       <Aparecer retraso={140}>
         <View style={[S.tarjeta, { marginBottom: 12 }]}>
           <Text style={S.eyebrow}>Las reglas</Text>
+          <Text style={[S.cuerpo, { fontSize: 12, marginTop: 2, marginBottom: 6 }]}>
+            ¿En qué se paga?
+          </Text>
+          <View style={[S.fila, { flexWrap: 'wrap', gap: 8, marginBottom: 6 }]}>
+            {DIVISAS.map((d) => {
+              const elegida = d.id === a.monedaId;
+              return (
+                <Pulsable key={d.id} onPress={() => set('monedaId', d.id)}>
+                  <View
+                    style={{
+                      flexDirection: 'row', alignItems: 'center', gap: 6,
+                      paddingHorizontal: 12, paddingVertical: 9, borderRadius: 999,
+                      borderWidth: 1,
+                      borderColor: elegida ? C.laton : C.linea,
+                      backgroundColor: elegida ? C.latonTenue : C.superficieAlta,
+                    }}
+                  >
+                    <Text style={{ fontSize: 15 }}>{d.emoji}</Text>
+                    <Text
+                      style={{
+                        fontFamily: F.fuerte, fontSize: 13,
+                        color: elegida ? C.laton : C.textoSuave,
+                      }}
+                    >
+                      {d.plural}
+                    </Text>
+                  </View>
+                </Pulsable>
+              );
+            })}
+          </View>
           <Contador
             etiqueta="Presupuesto por jugador"
-            ayuda="euros para toda la partida"
+            ayuda={`${divisaPorId(a.monedaId).plural} para toda la partida`}
             valor={a.presupuesto} min={3} max={200}
             onChange={(v) => set('presupuesto', v)}
           />
@@ -158,7 +192,7 @@ export default function Configuracion({ onContinuar }: { onContinuar: (a: Ajuste
             onChange={cambiarHuecos}
           />
           <Contador
-            etiqueta="Puja mínima" ayuda="para abrir un lote"
+            etiqueta="Puja mínima" ayuda="para abrir un lote" 
             valor={a.pujaMin} min={1} max={10}
             onChange={(v) => set('pujaMin', v)}
           />

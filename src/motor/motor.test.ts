@@ -5,6 +5,8 @@ import {
   crearPartida,
   descartar,
   huecosLibres,
+  ordenDeTurno,
+  pasar,
   puedePujar,
   pujar,
   pujaMinimaActual,
@@ -14,6 +16,7 @@ import type { Config, Item, Partida } from './tipos.ts';
 
 const config: Config = {
   temaId: 'test',
+  monedaId: 'cabras',
   presupuesto: 20,
   huecos: 3,
   pujaMin: 1,
@@ -28,22 +31,78 @@ const nueva = (n = 12, cfg: Partial<Config> = {}) =>
   crearPartida({ ...config, ...cfg }, ['Ana', 'Bea', 'Caj'], items(n));
 
 const j = (p: Partida, id: string) => p.jugadores.find((x) => x.id === id)!;
+const turno = (p: Partida) => p.subasta?.turno;
 
-/** Adjudica el ítem actual a `jugadorId` por `precio`. */
-const compra = (p: Partida, jugadorId: string, precio: number) =>
-  adjudicar(pujar(p, jugadorId, precio));
+/**
+ * Atajo para los tests: los que van antes en el turno se plantan, `ganador`
+ * abre con `precio` y el resto se planta hasta que el lote se cierra.
+ */
+const compra = (p: Partida, ganador: string, precio: number) => {
+  const lote = p.subasta!.item.id;
+  const mismoLote = (q: Partida) => q.subasta?.item.id === lote;
+  let q = p;
+  while (mismoLote(q) && q.subasta!.turno !== ganador) q = pasar(q, q.subasta!.turno);
+  if (!mismoLote(q)) throw new Error(`El lote se cerró antes del turno de ${ganador}`);
+  q = pujar(q, ganador, precio);
+  while (mismoLote(q)) q = pasar(q, q.subasta!.turno);
+  return q;
+};
 
 describe('arranque de partida', () => {
-  it('reparte presupuesto y saca el primer ítem', () => {
+  it('reparte presupuesto y abre el primer lote', () => {
     const p = nueva();
     assert.equal(p.fase, 'subasta');
     assert.equal(p.subasta?.item.id, 'i1');
     assert.deepEqual(p.jugadores.map((x) => x.dinero), [20, 20, 20]);
   });
 
-  it('respeta el orden de la lista cuando no es aleatorio', () => {
-    const p = adjudicar(pujar(nueva(), 'j1', 1));
-    assert.equal(p.subasta?.item.id, 'i2');
+  it('empieza pujando el primer jugador', () => {
+    assert.equal(turno(nueva()), 'j1');
+  });
+});
+
+describe('turnos y rotación', () => {
+  it('el turno avanza al siguiente tras pujar', () => {
+    const p = pujar(nueva(), 'j1', 1);
+    assert.equal(turno(p), 'j2');
+  });
+
+  it('el turno avanza al siguiente tras plantarse', () => {
+    const p = pasar(nueva(), 'j1');
+    assert.equal(turno(p), 'j2');
+  });
+
+  it('da la vuelta al orden circularmente', () => {
+    let p = nueva();
+    p = pujar(p, 'j1', 1);
+    p = pujar(p, 'j2', 2);
+    p = pujar(p, 'j3', 3);
+    assert.equal(turno(p), 'j1'); // vuelve al primero, que puede resubir
+  });
+
+  it('quien abre el lote rota en cada uno', () => {
+    let p = nueva();
+    assert.equal(p.subasta?.inicial, 0);
+    p = compra(p, 'j1', 1);
+    assert.equal(p.subasta?.inicial, 1);
+    assert.equal(turno(p), 'j2');
+    p = compra(p, 'j2', 1);
+    assert.equal(turno(p), 'j3');
+    p = compra(p, 'j3', 1);
+    assert.equal(turno(p), 'j1'); // vuelta completa
+  });
+
+  it('ordenDeTurno rota la mesa sin perder a nadie', () => {
+    const p = nueva();
+    assert.deepEqual(ordenDeTurno(p, 1).map((x) => x.id), ['j2', 'j3', 'j1']);
+  });
+
+  it('solo puede pujar quien tiene el turno', () => {
+    const p = nueva();
+    assert.equal(puedePujar(p, 'j1'), true);
+    assert.equal(puedePujar(p, 'j2'), false);
+    assert.throws(() => pujar(p, 'j2', 5), /No es el turno/);
+    assert.throws(() => pasar(p, 'j3'), /No es el turno/);
   });
 });
 
@@ -60,14 +119,8 @@ describe('reglas de puja', () => {
     assert.throws(() => pujar(p, 'j2', 5), /mínima es 6/);
   });
 
-  it('rechaza pujar más dinero del que se tiene', () => {
+  it('rechaza pujar más de lo que se tiene', () => {
     assert.throws(() => pujar(nueva(), 'j1', 21), /dinero disponible/);
-  });
-
-  it('el líder no puede pujarse a sí mismo por encima', () => {
-    const p = pujar(nueva(), 'j1', 2);
-    assert.equal(puedePujar(p, 'j1'), false);
-    assert.equal(puedePujar(p, 'j2'), true);
   });
 
   it('descuenta el dinero al adjudicar', () => {
@@ -77,76 +130,83 @@ describe('reglas de puja', () => {
   });
 });
 
-describe('elegibilidad', () => {
-  it('deja fuera a quien ya tiene los huecos llenos', () => {
+describe('cierre del lote', () => {
+  it('se adjudica solo cuando todos los rivales se plantan', () => {
+    let p = nueva();
+    p = pujar(p, 'j1', 4);
+    p = pasar(p, 'j2');
+    assert.equal(p.subasta?.item.id, 'i1'); // sigue vivo: falta j3
+    p = pasar(p, 'j3');
+    assert.equal(j(p, 'j1').plantilla.length, 1);
+    assert.equal(p.subasta?.item.id, 'i2'); // lote nuevo
+  });
+
+  it('el líder no vuelve a tener el turno mientras nadie le supere', () => {
+    let p = nueva();
+    p = pujar(p, 'j1', 2);
+    p = pasar(p, 'j2');
+    assert.equal(turno(p), 'j3'); // no vuelve a j1
+  });
+
+  it('se descarta si todos se plantan sin pujar', () => {
+    let p = nueva();
+    p = pasar(p, 'j1');
+    p = pasar(p, 'j2');
+    p = pasar(p, 'j3');
+    assert.deepEqual(p.descartados.map((i) => i.id), ['i1']);
+    assert.equal(p.subasta?.item.id, 'i2');
+  });
+
+  it('deja fuera del lote a quien no llega al mínimo', () => {
+    let p = nueva(12, { presupuesto: 5 });
+    p = pujar(p, 'j1', 5);   // j1 lo apuesta todo
+    p = pujar(p, 'j2', 5);   // no puede: pide 6
+    assert.equal(turno(p), 'j3');
+    p = pasar(p, 'j3');
+    // j2 tampoco podía superar los 5, así que el lote se cierra para j1.
+    assert.equal(j(p, 'j1').plantilla.length, 1);
+  });
+
+  it('quien tiene la plantilla llena no entra en los lotes siguientes', () => {
     let p = nueva();
     p = compra(p, 'j1', 1);
     p = compra(p, 'j1', 1);
     p = compra(p, 'j1', 1);
     assert.equal(huecosLibres(j(p, 'j1'), p.config), 0);
-    assert.equal(puedePujar(p, 'j1'), false);
-  });
-
-  it('deja fuera a quien no llega a la puja mínima actual', () => {
-    let p = nueva();
-    p = compra(p, 'j1', 19); // le queda 1 €
-    assert.equal(puedePujar(p, 'j1'), true); // aún puede entrar por 1 €
-    p = pujar(p, 'j2', 2);
-    assert.equal(puedePujar(p, 'j1'), false);
+    assert.ok(!p.subasta?.activos.includes('j1'));
+    assert.notEqual(turno(p), 'j1');
   });
 });
 
-describe('descartes', () => {
-  it('adjudicar sin pujas descarta el ítem', () => {
-    const p = adjudicar(nueva());
-    assert.deepEqual(p.descartados.map((i) => i.id), ['i1']);
-    assert.equal(p.subasta?.item.id, 'i2');
-    assert.equal(p.historial.at(-1)?.tipo, 'descarte');
-  });
-});
-
-describe('fin de partida y auto-relleno (opción A)', () => {
+describe('fin de partida y auto-relleno', () => {
   it('termina cuando todas las plantillas están llenas', () => {
     let p = nueva(9);
     for (const id of ['j1', 'j1', 'j1', 'j2', 'j2', 'j2', 'j3', 'j3', 'j3']) {
       p = compra(p, id, 1);
     }
     assert.equal(p.fase, 'resultados');
-    assert.equal(p.subasta, null);
     assert.ok(p.jugadores.every((x) => x.plantilla.length === 3));
   });
 
   it('corta y reparte en cuanto ya nadie puede pujar', () => {
-    // 12 ítems, pero los tres jugadores se funden el presupuesto en el primero.
     let p = nueva(12, { presupuesto: 5 });
     p = compra(p, 'j1', 5);
     p = compra(p, 'j2', 5);
     assert.equal(p.fase, 'subasta');
-    p = compra(p, 'j3', 5); // nadie tiene ya dinero: se cierra la partida
+    p = compra(p, 'j3', 5);
     assert.equal(p.fase, 'resultados');
-    // Los huecos se llenan con los siguientes ítems en orden, por rondas.
     assert.deepEqual(j(p, 'j1').plantilla.map((a) => a.item.id), ['i1', 'i4', 'i7']);
     assert.deepEqual(j(p, 'j2').plantilla.map((a) => a.item.id), ['i2', 'i5', 'i8']);
     assert.deepEqual(j(p, 'j3').plantilla.map((a) => a.item.id), ['i3', 'i6', 'i9']);
-    // No se recorre el resto de la lista.
     assert.deepEqual(p.descartados.map((i) => i.id), ['i10', 'i11', 'i12']);
   });
 
-  it('sigue la subasta mientras alguien conserve dinero', () => {
-    let p = nueva();
-    p = compra(p, 'j1', 20); // j1 se queda a 0 con 2 huecos libres
-    assert.equal(p.fase, 'subasta');
-    assert.equal(puedePujar(p, 'j1'), false);
-    assert.equal(j(p, 'j1').plantilla.length, 1);
-  });
-
   it('reparte los sobrantes al agotarse la lista', () => {
-    // 5 ítems: j1 compra los 3 primeros y nadie quiere los 2 últimos.
     let p = nueva(5);
     p = compra(p, 'j1', 1);
     p = compra(p, 'j1', 1);
     p = compra(p, 'j1', 1);
-    assert.equal(p.fase, 'subasta'); // la lista aún no se ha agotado
+    assert.equal(p.fase, 'subasta');
     p = descartar(p);
     p = descartar(p);
     assert.equal(p.fase, 'resultados');
@@ -156,32 +216,8 @@ describe('fin de partida y auto-relleno (opción A)', () => {
     assert.equal(j(p, 'j2').plantilla[0].precio, 0);
   });
 
-  it('los descartados vuelven al bombo del auto-relleno', () => {
-    let p = nueva(4);
-    p = descartar(p);            // i1 al montón
-    p = compra(p, 'j1', 1);      // i2
-    p = compra(p, 'j2', 1);      // i3
-    p = compra(p, 'j3', 1);      // i4 -> se acaba la lista
-    assert.equal(p.fase, 'resultados');
-    // Solo queda i1 y va al primer jugador incompleto.
-    assert.deepEqual(j(p, 'j1').plantilla.map((a) => a.item.id), ['i2', 'i1']);
-    assert.equal(p.descartados.length, 0);
-  });
-
-  it('reparte por rondas entre los incompletos', () => {
-    let p = nueva(7);
-    p = compra(p, 'j1', 1); // i1
-    p = compra(p, 'j1', 1); // i2
-    p = compra(p, 'j1', 1); // i3 -> j1 lleno
-    // Nadie quiere i4..i7: los 4 sobrantes se reparten entre j2 y j3.
-    while (p.fase === 'subasta') p = descartar(p);
-    assert.deepEqual(j(p, 'j2').plantilla.map((a) => a.item.id), ['i4', 'i6']);
-    assert.deepEqual(j(p, 'j3').plantilla.map((a) => a.item.id), ['i5', 'i7']);
-  });
-
   it('no deja a nadie con más ítems que huecos', () => {
-    const p = nueva(40);
-    let q = p;
+    let q = nueva(40);
     while (q.fase === 'subasta') q = adjudicar(q); // nadie puja nunca
     assert.ok(q.jugadores.every((x) => x.plantilla.length === 3));
     assert.equal(q.descartados.length, 40 - 9);

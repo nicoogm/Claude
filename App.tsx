@@ -36,6 +36,7 @@ export default function App() {
     iniciar(
       {
         temaId: tema.id,
+        monedaId: ajustes.monedaId,
         presupuesto: ajustes.presupuesto,
         huecos: ajustes.huecos,
         pujaMin: ajustes.pujaMin,

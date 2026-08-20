@@ -3,6 +3,7 @@ import {
   adjudicar,
   crearPartida,
   descartar,
+  pasar,
   pujar,
 } from '../motor/motor.ts';
 import type { Config, Item, Partida } from '../motor/tipos.ts';
@@ -13,6 +14,7 @@ type Estado = {
   pasado: Partida[];
   iniciar: (config: Config, nombres: string[], items: Item[]) => void;
   pujar: (jugadorId: string, importe: number) => void;
+  pasar: (jugadorId: string) => void;
   adjudicar: () => void;
   descartar: () => void;
   deshacer: () => void;
@@ -34,6 +36,7 @@ export const usePartida = create<Estado>((set, get) => {
     iniciar: (config, nombres, items) =>
       set({ partida: crearPartida(config, nombres, items), pasado: [] }),
     pujar: (jugadorId, importe) => aplicar((p) => pujar(p, jugadorId, importe)),
+    pasar: (jugadorId) => aplicar((p) => pasar(p, jugadorId)),
     adjudicar: () => aplicar(adjudicar),
     descartar: () => aplicar(descartar),
     deshacer: () => {

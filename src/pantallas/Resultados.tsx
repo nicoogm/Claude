@@ -1,5 +1,6 @@
 import { ScrollView, Text, View } from 'react-native';
 import type { Partida } from '../motor/tipos.ts';
+import { divisaPorId, precio } from '../datos/divisas.ts';
 import { C, F, S, colorJugador } from '../ui/tema.ts';
 import { Aparecer, Boton } from '../ui/componentes.tsx';
 
@@ -12,6 +13,7 @@ export default function Resultados({
   onVotar: () => void;
   onSalir: () => void;
 }) {
+  const moneda = divisaPorId(partida.config.monedaId);
   const huboAuto = partida.jugadores.some((j) => j.plantilla.some((a) => a.auto));
 
   return (
@@ -38,7 +40,7 @@ export default function Resultados({
                 <View style={[S.fila, { justifyContent: 'space-between', marginBottom: 12 }]}>
                   <Text style={{ fontFamily: F.extra, fontSize: 19, color }}>{j.nombre}</Text>
                   <Text style={[S.cifra, { fontSize: 13, color: C.textoDebil }]}>
-                    {gastado} € gastados · {j.dinero} € sin usar
+                    {precio(gastado, moneda)} gastadas · {precio(j.dinero, moneda)} sin usar
                   </Text>
                 </View>
                 <View style={{ gap: 2 }}>
@@ -54,7 +56,7 @@ export default function Resultados({
                           { fontSize: 14, color: a.auto ? C.textoDebil : C.laton },
                         ]}
                       >
-                        {a.auto ? 'gratis' : `${a.precio} €`}
+                        {a.auto ? 'gratis' : precio(a.precio, moneda)}
                       </Text>
                     </View>
                   ))}

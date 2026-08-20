@@ -40,17 +40,16 @@ export function crearPartida(
     dinero: config.presupuesto,
     plantilla: [],
   }));
-  const mazo = config.ordenAleatorio ? barajar(items, rng) : [...items];
-  const partida: Partida = {
+  return siguienteItem({
     config,
     jugadores,
-    mazo,
+    mazo: config.ordenAleatorio ? barajar(items, rng) : [...items],
     descartados: [],
     subasta: null,
+    turnoInicial: 0,
     fase: 'subasta',
     historial: [],
-  };
-  return siguienteItem(partida);
+  });
 }
 
 export const huecosLibres = (j: Jugador, config: Config): number =>
@@ -62,7 +61,7 @@ export const jugador = (p: Partida, id: string): Jugador => {
   return j;
 };
 
-/** Importe mínimo con el que se puede entrar en la subasta actual. */
+/** Importe mínimo con el que se puede entrar o subir en la subasta actual. */
 export function pujaMinimaActual(p: Partida): number {
   if (!p.subasta) return p.config.pujaMin;
   return p.subasta.lider === null
@@ -70,41 +69,96 @@ export function pujaMinimaActual(p: Partida): number {
     : p.subasta.pujaActual + p.config.incremento;
 }
 
-/**
- * Un jugador puede pujar si le queda algún hueco, no es ya el líder de la
- * subasta y le llega el dinero para la puja mínima actual.
- */
+/** Orden de turno del lote actual, empezando por quien lo abre. */
+export function ordenDeTurno(p: Partida, inicial: number): Jugador[] {
+  const n = p.jugadores.length;
+  return Array.from({ length: n }, (_, k) => p.jugadores[(inicial + k) % n]);
+}
+
+/** Puede seguir en el lote quien tiene hueco libre y dinero para subir. */
+const puedeSeguir = (p: Partida, j: Jugador, minimo: number): boolean =>
+  huecosLibres(j, p.config) > 0 && j.dinero >= minimo;
+
+/** Solo puja quien tiene el turno. */
 export function puedePujar(p: Partida, jugadorId: string): boolean {
-  if (p.fase !== 'subasta' || !p.subasta) return false;
-  const j = jugador(p, jugadorId);
-  if (huecosLibres(j, p.config) <= 0) return false;
-  if (p.subasta.lider === jugadorId) return false;
-  return j.dinero >= pujaMinimaActual(p);
+  return (
+    p.fase === 'subasta' &&
+    p.subasta !== null &&
+    p.subasta.turno === jugadorId &&
+    jugador(p, jugadorId).dinero >= pujaMinimaActual(p)
+  );
 }
 
 export function pujar(p: Partida, jugadorId: string, importe: number): Partida {
   if (!p.subasta) throw new Error('No hay subasta abierta');
-  if (!puedePujar(p, jugadorId)) {
-    throw new Error(`${jugadorId} no puede pujar ahora`);
+  if (p.subasta.turno !== jugadorId) {
+    throw new Error(`No es el turno de ${jugadorId}`);
   }
   const minimo = pujaMinimaActual(p);
-  if (importe < minimo) {
-    throw new Error(`La puja mínima es ${minimo} €`);
-  }
+  if (importe < minimo) throw new Error(`La puja mínima es ${minimo}`);
   if (importe > jugador(p, jugadorId).dinero) {
     throw new Error('Puja superior al dinero disponible');
   }
-  return {
+  return pasarElTurno({
     ...p,
     subasta: { ...p.subasta, pujaActual: importe, lider: jugadorId },
     historial: [
       ...p.historial,
       { tipo: 'puja', jugadorId, itemId: p.subasta.item.id, importe },
     ],
+  });
+}
+
+/** El jugador se planta: deja de pujar por este lote (no por la partida). */
+export function pasar(p: Partida, jugadorId: string): Partida {
+  if (!p.subasta) throw new Error('No hay subasta abierta');
+  if (p.subasta.turno !== jugadorId) {
+    throw new Error(`No es el turno de ${jugadorId}`);
+  }
+  return pasarElTurno({
+    ...p,
+    subasta: {
+      ...p.subasta,
+      activos: p.subasta.activos.filter((id) => id !== jugadorId),
+    },
+    historial: [
+      ...p.historial,
+      { tipo: 'plante', jugadorId, itemId: p.subasta.item.id },
+    ],
+  });
+}
+
+/**
+ * Da el turno al siguiente que pueda decidir algo. Si ya no queda nadie que
+ * pueda superar al líder, el lote se adjudica; si nadie ha pujado, se descarta.
+ */
+function pasarElTurno(p: Partida): Partida {
+  const s = p.subasta!;
+  const minimo = pujaMinimaActual(p);
+  const orden = ordenDeTurno(p, s.inicial);
+
+  // Quien no llegue al mínimo queda fuera del lote sin tener que plantarse.
+  const enPie = orden.filter(
+    (j) => s.activos.includes(j.id) && puedeSeguir(p, j, minimo),
+  );
+  const rivales = enPie.filter((j) => j.id !== s.lider);
+
+  if (s.lider !== null && rivales.length === 0) return adjudicar(p);
+  if (s.lider === null && enPie.length === 0) return descartar(p);
+
+  // El siguiente en el orden circular a partir de quien acaba de decidir.
+  const candidatos = s.lider === null ? enPie : rivales;
+  const desde = orden.findIndex((j) => j.id === s.turno);
+  const siguiente =
+    candidatos.find((j) => orden.indexOf(j) > desde) ?? candidatos[0];
+
+  return {
+    ...p,
+    subasta: { ...s, activos: enPie.map((j) => j.id), turno: siguiente.id },
   };
 }
 
-/** Cierra el ítem actual: se lo lleva el líder, o se descarta si no hubo pujas. */
+/** Cierra el lote: se lo lleva el líder. */
 export function adjudicar(p: Partida): Partida {
   if (!p.subasta) throw new Error('No hay subasta abierta');
   const { item, pujaActual, lider } = p.subasta;
@@ -133,7 +187,7 @@ export function adjudicar(p: Partida): Partida {
   });
 }
 
-/** Nadie puja por el ítem: va al montón de sobrantes. */
+/** Nadie quiso el lote: va al montón de sobrantes. */
 export function descartar(p: Partida): Partida {
   if (!p.subasta) throw new Error('No hay subasta abierta');
   const { item } = p.subasta;
@@ -148,27 +202,39 @@ export function descartar(p: Partida): Partida {
 const plantillasCompletas = (p: Partida): boolean =>
   p.jugadores.every((j) => huecosLibres(j, p.config) === 0);
 
-/** ¿Queda alguien capaz de pujar por el siguiente ítem? */
+/** ¿Queda alguien capaz de pujar por el siguiente lote? */
 const quedanPujadores = (p: Partida): boolean =>
-  p.jugadores.some(
-    (j) => huecosLibres(j, p.config) > 0 && j.dinero >= p.config.pujaMin,
-  );
+  p.jugadores.some((j) => puedeSeguir(p, j, p.config.pujaMin));
 
 /**
- * Saca el siguiente ítem a subasta. La partida se cierra —aplicando el
- * auto-relleno— cuando todas las plantillas están llenas, cuando se agota la
- * lista o cuando ya nadie tiene dinero para seguir pujando.
+ * Abre el siguiente lote, rotando quién arranca la puja. La partida se cierra
+ * —aplicando el auto-relleno— cuando todas las plantillas están llenas, cuando
+ * se agota la lista o cuando ya nadie tiene dinero para seguir pujando.
  */
 function siguienteItem(p: Partida): Partida {
   if (plantillasCompletas(p) || p.mazo.length === 0 || !quedanPujadores(p)) {
     return aplicarAutoRelleno({ ...p, subasta: null, fase: 'resultados' });
   }
   const [item, ...resto] = p.mazo;
-  return {
+  const inicial = p.turnoInicial % p.jugadores.length;
+  const orden = ordenDeTurno(p, inicial);
+  const enPie = orden.filter((j) => puedeSeguir(p, j, p.config.pujaMin));
+
+  const conLote: Partida = {
     ...p,
     mazo: resto,
-    subasta: { item, pujaActual: 0, lider: null },
+    turnoInicial: (inicial + 1) % p.jugadores.length,
+    subasta: {
+      item,
+      pujaActual: 0,
+      lider: null,
+      activos: enPie.map((j) => j.id),
+      turno: enPie[0]?.id ?? orden[0].id,
+      inicial,
+    },
   };
+  // Si nadie puede abrir este lote, se descarta y se pasa al siguiente.
+  return enPie.length === 0 ? descartar(conLote) : conLote;
 }
 
 /**

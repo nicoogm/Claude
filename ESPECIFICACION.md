@@ -9,7 +9,8 @@ el resto canta en voz alta.
 | Tema | Decisión |
 |---|---|
 | Modo de juego | Un único móvil como consola de subasta. Sin backend, sin cuentas, sin internet. |
-| Rol del portador | Es el "subastador": lee el ítem en voz alta y registra pujas. Puede jugar o no (configurable). |
+| Ritmo de la puja | Por turnos: le toca a uno, sube o se planta, y pasa al siguiente. Quien abre rota en cada lote. |
+| Divisa | De broma y elegible: cabras 🐐, gambas 🦐, plátanos 🍌 o patos 🦆. |
 | Falta de dinero | Auto-relleno: cuando ya nadie puede pujar, los huecos vacíos se completan con los siguientes ítems de la lista, por orden. |
 | Temas | 10 listas precargadas de ~100 ítems + editor para crear listas propias. De cada lista se sortean los ítems de la partida. |
 | Ganador | No automático. Se muestran las plantillas y el grupo vota dentro de la app. |
@@ -17,13 +18,13 @@ el resto canta en voz alta.
 ## 2. Parámetros configurables
 
 - Número de jugadores (2-10) y sus nombres.
-- Presupuesto por jugador (por defecto 20 €).
+- Divisa (cabras por defecto) y presupuesto por jugador (por defecto 20).
 - Número de huecos por jugador (por defecto 3).
 - Tema / lista de ítems.
 - Ítems que salen a subasta: de la lista del tema (80-115 nombres cada una) se
   sortean solo los de esta partida, así que dos partidas del mismo tema no se
   parecen. Por defecto 18, con un mínimo de jugadores × huecos.
-- Puja mínima inicial (por defecto 1 €) e incremento mínimo (por defecto 1 €).
+- Puja mínima inicial (por defecto 1) e incremento mínimo (por defecto 1).
 
 ## 3. Flujo de la partida
 
@@ -31,15 +32,18 @@ el resto canta en voz alta.
 CONFIG → ELEGIR TEMA → [ SUBASTA_ÍTEM → ADJUDICACIÓN ]×N → AUTO-RELLENO → RESULTADOS → VOTACIÓN
 ```
 
-**Subasta de un ítem**
-1. La app muestra el ítem a pantalla completa (el portador lo lee en alto).
-2. La gente puja de viva voz; el portador toca el nombre del jugador y su
-   importe. La puja actual y el líder quedan siempre visibles.
-3. "Adjudicar" cierra el ítem: se descuenta el dinero al líder y el ítem entra
-   en su plantilla.
-4. Si nadie puja, el ítem se descarta y pasa al siguiente.
-5. Corrección de errores: botón de deshacer la última acción (imprescindible,
-   se registran pujas a mano y a toda velocidad).
+**Subasta de un lote, por turnos**
+1. La app muestra el lote y, arriba del todo, de quién es el turno.
+2. Ese jugador elige: **subir** (cualquier importe desde la puja mínima, que es
+   la actual más el incremento) o **plantarse**, que le deja fuera de ese lote
+   —no de la partida.
+3. El turno pasa al siguiente que siga vivo en el lote, saltándose al líder:
+   nadie se puja a sí mismo.
+4. Cuando todos los rivales se han plantado, el lote se adjudica al líder.
+5. Si todos se plantan sin pujar, el lote se descarta.
+6. **El jugador que abre la puja rota en cada lote**, y siempre se abre desde la
+   puja mínima.
+7. Corrección de errores: botón de deshacer la última acción.
 
 ## 4. Reglas del motor
 
@@ -71,7 +75,8 @@ viva voz. El único orden que importa es el de los ítems.
 type Tema     = { id: string; titulo: string; items: Item[]; propio: boolean }
 type Item     = { id: string; nombre: string }
 type Jugador  = { id: string; nombre: string; dinero: number; plantilla: Item[] }
-type Subasta  = { item: Item; pujaActual: number; lider: string | null }
+type Subasta  = { item: Item; pujaActual: number; lider: string | null;
+                  activos: string[]; turno: string; inicial: number }
 type Config   = { presupuesto: number; huecos: number; pujaMin: number;
                   incremento: number; ordenAleatorio: boolean; temaId: string }
 type Partida  = { config: Config; jugadores: Jugador[]; mazo: Item[];
