@@ -6,8 +6,20 @@
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
-    "splash": { "resizeMode": "contain", "backgroundColor": "#0B1020" },
-    "android": { "package": "com.draftsubastas.app" },
-    "ios": { "supportsTablet": true, "bundleIdentifier": "com.draftsubastas.app" }
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#0B1020"
+    },
+    "android": {
+      "package": "com.draftsubastas.app"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.draftsubastas.app"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    }
   }
 }
