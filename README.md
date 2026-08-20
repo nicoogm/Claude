@@ -31,7 +31,8 @@ src/estado/          store de la partida, con deshacer
 src/datos/temas.ts   temas precargados (~100 ítems cada uno)
 tools/               empaquetado de la versión web
 src/pantallas/       configuración, tema, subasta, resultados, votación
-src/ui/tema.ts       colores y estilos comunes
+src/ui/tema.ts       identidad visual: color, tipografía, elevación
+src/ui/componentes.tsx  botones, entradas animadas, cifras que ruedan
 ```
 
 El motor no depende de React: se puede testear entero desde Node y sería lo

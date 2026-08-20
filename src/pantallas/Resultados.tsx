@@ -1,6 +1,7 @@
-import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 import type { Partida } from '../motor/tipos.ts';
-import { C, S, colorJugador } from '../ui/tema.ts';
+import { C, F, S, colorJugador } from '../ui/tema.ts';
+import { Aparecer, Boton } from '../ui/componentes.tsx';
 
 export default function Resultados({
   partida,
@@ -14,53 +15,64 @@ export default function Resultados({
   const huboAuto = partida.jugadores.some((j) => j.plantilla.some((a) => a.auto));
 
   return (
-    <ScrollView style={S.pantalla} contentContainerStyle={{ paddingBottom: 40 }}>
-      <Text style={S.titulo}>Plantillas finales</Text>
-      <Text style={S.subtitulo}>
-        {huboAuto
-          ? 'Los ítems marcados con ✱ se repartieron al quedarse la mesa sin dinero.'
-          : 'Draft completado. Que empiece el debate.'}
-      </Text>
+    <ScrollView style={S.pantalla} contentContainerStyle={[S.contenido, { paddingTop: 12 }]}>
+      <Aparecer>
+        <Text style={[S.eyebrow, { color: C.laton }]}>Sala cerrada</Text>
+        <Text style={[S.cartel, { fontSize: 52, lineHeight: 54, marginTop: 6 }]}>
+          Las plantillas
+        </Text>
+        <Text style={[S.cuerpo, { marginTop: 8, marginBottom: 22 }]}>
+          {huboAuto
+            ? 'Los lotes con ✱ se repartieron al quedarse la mesa sin dinero.'
+            : 'Draft completado. Que empiece el debate.'}
+        </Text>
+      </Aparecer>
 
-      {partida.jugadores.map((j, i) => {
-        const color = colorJugador(i);
-        const gastado = j.plantilla.reduce((s, a) => s + a.precio, 0);
-        return (
-          <View key={j.id} style={[S.tarjeta, { borderColor: color }]}>
-            <View style={[S.fila, { justifyContent: 'space-between', marginBottom: 10 }]}>
-              <Text style={{ color, fontSize: 20, fontWeight: '800' }}>{j.nombre}</Text>
-              <Text style={{ color: C.textoSuave, fontSize: 13 }}>
-                {gastado} € gastados · {j.dinero} € sin usar
-              </Text>
-            </View>
-            {j.plantilla.map((a, k) => (
-              <View
-                key={k}
-                style={[S.fila, { justifyContent: 'space-between', paddingVertical: 6 }]}
-              >
-                <Text style={{ color: C.texto, fontSize: 16, flex: 1 }}>
-                  {a.item.nombre}
-                  {a.auto ? ' ✱' : ''}
-                </Text>
-                <Text style={{ color: a.auto ? C.textoSuave : C.texto, fontWeight: '700' }}>
-                  {a.auto ? 'gratis' : `${a.precio} €`}
-                </Text>
+      <View style={{ gap: 12 }}>
+        {partida.jugadores.map((j, i) => {
+          const color = colorJugador(i);
+          const gastado = j.plantilla.reduce((s, a) => s + a.precio, 0);
+          return (
+            <Aparecer key={j.id} retraso={80 + i * 90}>
+              <View style={[S.tarjeta, { borderColor: color, paddingVertical: 16 }]}>
+                <View style={[S.fila, { justifyContent: 'space-between', marginBottom: 12 }]}>
+                  <Text style={{ fontFamily: F.extra, fontSize: 19, color }}>{j.nombre}</Text>
+                  <Text style={[S.cifra, { fontSize: 13, color: C.textoDebil }]}>
+                    {gastado} € gastados · {j.dinero} € sin usar
+                  </Text>
+                </View>
+                <View style={{ gap: 2 }}>
+                  {j.plantilla.map((a, k) => (
+                    <View key={k} style={[S.fila, { justifyContent: 'space-between', paddingVertical: 5 }]}>
+                      <Text style={{ fontFamily: F.fuerte, fontSize: 15, color: C.texto, flex: 1 }}>
+                        {a.item.nombre}
+                        {a.auto ? ' ✱' : ''}
+                      </Text>
+                      <Text
+                        style={[
+                          S.cifra,
+                          { fontSize: 14, color: a.auto ? C.textoDebil : C.laton },
+                        ]}
+                      >
+                        {a.auto ? 'gratis' : `${a.precio} €`}
+                      </Text>
+                    </View>
+                  ))}
+                  {j.plantilla.length === 0 && (
+                    <Text style={S.cuerpo}>Se fue de vacío.</Text>
+                  )}
+                </View>
               </View>
-            ))}
-            {j.plantilla.length === 0 && (
-              <Text style={{ color: C.textoSuave }}>Se fue de vacío.</Text>
-            )}
-          </View>
-        );
-      })}
+            </Aparecer>
+          );
+        })}
+      </View>
 
-      <TouchableOpacity style={S.boton} onPress={onVotar}>
-        <Text style={S.botonTexto}>Votar la mejor plantilla →</Text>
-      </TouchableOpacity>
-      <View style={{ height: 8 }} />
-      <TouchableOpacity style={S.botonSec} onPress={onSalir}>
-        <Text style={S.botonSecTexto}>Nueva partida</Text>
-      </TouchableOpacity>
+      <View style={{ height: 20 }} />
+      <Aparecer retraso={200} style={{ gap: 10 }}>
+        <Boton texto="Votar la mejor plantilla →" onPress={onVotar} />
+        <Boton texto="Nueva partida" onPress={onSalir} variante="fantasma" />
+      </Aparecer>
     </ScrollView>
   );
 }

@@ -2,12 +2,35 @@
 // que es lo que admite el visor de artefactos (sin peticiones a otros hosts).
 //   npx expo export -p web --output-dir dist && node tools/empaquetar-web.mjs <salida.html>
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
+import { globSync } from 'node:fs';
+
+/** Fuentes que la app carga de verdad; el resto de pesos no se piden nunca. */
+const FUENTES = ['BebasNeue_400Regular', 'Manrope_500Medium', 'Manrope_700Bold', 'Manrope_800ExtraBold'];
+
+/** Convierte la ruta de cada .ttf usado en un data: URI dentro del bundle. */
+function incrustarFuentes(js) {
+  const ttfs = globSync('dist/assets/**/*.ttf');
+  let incrustadas = 0;
+  for (const ruta of ttfs) {
+    const nombre = ruta.split('/').pop().split('.')[0];
+    if (!FUENTES.includes(nombre)) continue;
+    const url = '/' + ruta.replace(/^dist\//, '');
+    if (!js.includes(url)) throw new Error('No se encuentra en el bundle: ' + url);
+    const datos = readFileSync(ruta).toString('base64');
+    js = js.replaceAll(url, `data:font/ttf;base64,${datos}`);
+    incrustadas++;
+  }
+  if (incrustadas !== FUENTES.length) {
+    throw new Error(`Solo se incrustaron ${incrustadas} de ${FUENTES.length} fuentes`);
+  }
+  return js;
+}
 
 const dirJs = 'dist/_expo/static/js/web';
 const bundle = readdirSync(dirJs).find((f) => f.endsWith('.js'));
 if (!bundle) throw new Error('No hay bundle en ' + dirJs);
 
-const js = readFileSync(`${dirJs}/${bundle}`, 'utf8')
+const js = incrustarFuentes(readFileSync(`${dirJs}/${bundle}`, 'utf8'))
   // Evita que un "</script>" dentro del código cierre la etiqueta antes de tiempo.
   .replaceAll('</script>', '<\\/script>');
 

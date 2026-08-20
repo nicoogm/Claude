@@ -1,7 +1,8 @@
-import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 import { TEMAS } from '../datos/temas.ts';
 import type { Tema } from '../motor/tipos.ts';
-import { C, S } from '../ui/tema.ts';
+import { C, F, S } from '../ui/tema.ts';
+import { Aparecer, Boton, Pulsable } from '../ui/componentes.tsx';
 
 export default function SeleccionTema({
   itemsNecesarios,
@@ -13,42 +14,47 @@ export default function SeleccionTema({
   onVolver: () => void;
 }) {
   return (
-    <ScrollView style={S.pantalla} contentContainerStyle={{ paddingBottom: 40 }}>
-      <Text style={S.titulo}>¿De qué va el draft?</Text>
-      <Text style={S.subtitulo}>
-        De la lista que elijáis se sortearán {itemsNecesarios} ítems para esta
-        partida.
-      </Text>
+    <ScrollView style={S.pantalla} contentContainerStyle={[S.contenido, { paddingTop: 12 }]}>
+      <Aparecer>
+        <Text style={[S.eyebrow, { color: C.laton }]}>Catálogo</Text>
+        <Text style={[S.cartel, { fontSize: 52, lineHeight: 54, marginTop: 6 }]}>
+          ¿De qué va el draft?
+        </Text>
+        <Text style={[S.cuerpo, { marginTop: 8, marginBottom: 22 }]}>
+          De la lista que elijáis se sortean {itemsNecesarios} lotes para esta partida.
+        </Text>
+      </Aparecer>
 
-      {TEMAS.map((t) => {
-        const suficiente = t.items.length >= itemsNecesarios;
-        return (
-          <TouchableOpacity
-            key={t.id}
-            disabled={!suficiente}
-            onPress={() => onElegir(t)}
-            style={[S.tarjeta, !suficiente && S.desactivado]}
-          >
-            <Text style={{ color: C.texto, fontSize: 18, fontWeight: '700' }}>
-              {t.titulo}
-            </Text>
-            <Text style={{ color: C.textoSuave, marginTop: 4 }}>
-              {itemsNecesarios} de {t.items.length} · {' '}
-              {t.items.slice(0, 3).map((i) => i.nombre).join(', ')}…
-            </Text>
-            {!suficiente && (
-              <Text style={{ color: C.aviso, marginTop: 6, fontSize: 13 }}>
-                Solo tiene {t.items.length} ítems
-              </Text>
-            )}
-          </TouchableOpacity>
-        );
-      })}
+      <View style={{ gap: 10 }}>
+        {TEMAS.map((t, i) => {
+          const suficiente = t.items.length >= itemsNecesarios;
+          return (
+            <Aparecer key={t.id} retraso={60 + i * 45}>
+              <Pulsable onPress={() => onElegir(t)} disabled={!suficiente}>
+                <View style={[S.tarjeta, { paddingVertical: 15 }, !suficiente && S.desactivado]}>
+                  <View style={[S.fila, { justifyContent: 'space-between' }]}>
+                    <Text style={{ fontFamily: F.extra, fontSize: 17, color: C.texto, flex: 1 }}>
+                      {t.titulo}
+                    </Text>
+                    <Text style={[S.cifra, { fontSize: 13, color: C.laton }]}>
+                      {suficiente ? `${itemsNecesarios} de ${t.items.length}` : `solo ${t.items.length}`}
+                    </Text>
+                  </View>
+                  <Text
+                    numberOfLines={1}
+                    style={{ fontFamily: F.texto, fontSize: 12, color: C.textoDebil, marginTop: 5 }}
+                  >
+                    {t.items.slice(0, 4).map((x) => x.nombre).join('  ·  ')}…
+                  </Text>
+                </View>
+              </Pulsable>
+            </Aparecer>
+          );
+        })}
+      </View>
 
-      <View style={{ height: 8 }} />
-      <TouchableOpacity style={S.botonSec} onPress={onVolver}>
-        <Text style={S.botonSecTexto}>← Volver</Text>
-      </TouchableOpacity>
+      <View style={{ height: 16 }} />
+      <Boton texto="← Volver" onPress={onVolver} variante="fantasma" />
     </ScrollView>
   );
 }
