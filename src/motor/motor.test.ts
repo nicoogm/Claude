@@ -251,3 +251,44 @@ describe('sorteo de ítems', () => {
     assert.equal(vistos.size, 30);
   });
 });
+
+describe('quien no llega al importe queda fuera', () => {
+  // Presupuesto ajustado para que j1 se quede corto a mitad de lote.
+  const corta = () => crearPartida({ ...config, presupuesto: 6 }, ['Ana', 'Bea', 'Caj'], items(12));
+
+  it('sale de los activos en cuanto la puja le supera', () => {
+    let p = corta();
+    p = compra(p, 'j1', 5);           // a Ana le queda 1
+    assert.equal(j(p, 'j1').dinero, 1);
+    p = pujar(p, 'j2', 1);            // abre Bea; el mínimo pasa a 2
+    assert.ok(!p.subasta!.activos.includes('j1'), 'Ana debería estar fuera del lote');
+    assert.equal(puedePujar(p, 'j1'), false);
+  });
+
+  it('nunca le vuelve a tocar el turno en ese lote', () => {
+    let p = corta();
+    p = compra(p, 'j1', 5);
+    p = pujar(p, 'j2', 1);
+    const turnos: string[] = [];
+    while (p.subasta && p.subasta.item.id === 'i2') {
+      turnos.push(p.subasta.turno);
+      p = pasar(p, p.subasta.turno);
+    }
+    assert.ok(!turnos.includes('j1'), `Ana no debía tener turno, y los hubo: ${turnos}`);
+  });
+
+  it('tampoco puede abrir un lote si no llega a la puja mínima', () => {
+    let p = crearPartida({ ...config, presupuesto: 6, pujaMin: 2 }, ['Ana', 'Bea', 'Caj'], items(12));
+    p = compra(p, 'j1', 5);           // a Ana le queda 1, y abrir cuesta 2
+    assert.ok(!p.subasta!.activos.includes('j1'));
+    assert.notEqual(p.subasta!.turno, 'j1');
+  });
+
+  it('sigue jugando los lotes que sí puede pagar', () => {
+    let p = corta();
+    p = compra(p, 'j1', 5);
+    // Lote nuevo: con 1 cabra Ana puede abrir, porque la mínima es 1.
+    p = compra(p, 'j2', 1);
+    assert.ok(p.subasta!.activos.includes('j1'));
+  });
+});

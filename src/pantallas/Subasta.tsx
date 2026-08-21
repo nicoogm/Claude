@@ -264,6 +264,9 @@ export default function Subasta({ partida }: { partida: Partida }) {
             const esTurno = j.id === subasta.turno;
             const esLider = j.id === subasta.lider;
             const sigue = subasta.activos.includes(j.id);
+            // Fuera del lote hay dos motivos muy distintos: te has plantado tú,
+            // o se te ha ido de precio. Conviene que se vea cuál.
+            const sinDinero = j.dinero < minimo;
             const estado = esLider
               ? 'lleva la puja'
               : esTurno
@@ -272,7 +275,9 @@ export default function Subasta({ partida }: { partida: Partida }) {
                   ? 'sigue vivo'
                   : huecosLibres(j, partida.config) === 0
                     ? 'plantilla completa'
-                    : 'fuera del lote';
+                    : sinDinero
+                      ? `no le llega · faltan ${minimo - j.dinero}`
+                      : 'se plantó';
             return (
               <View
                 key={j.id}
@@ -292,12 +297,25 @@ export default function Subasta({ partida }: { partida: Partida }) {
                     <Text style={{ fontFamily: F.fuerte, fontSize: 15, color: C.texto }}>
                       {j.nombre}
                     </Text>
-                    <Text style={{ fontFamily: F.texto, fontSize: 11, color: C.textoDebil, marginTop: 2 }}>
+                    <Text
+                      style={{
+                        fontFamily: F.texto, fontSize: 11, marginTop: 2,
+                        color: !sigue && sinDinero ? C.peligro : C.textoDebil,
+                      }}
+                    >
                       {estado}
                     </Text>
                   </View>
                   <Huecos llenos={j.plantilla.length} total={partida.config.huecos} color={color} />
-                  <Text style={[S.cifra, { fontSize: 14, color: C.textoSuave, minWidth: 54, textAlign: 'right' }]}>
+                  <Text
+                    style={[
+                      S.cifra,
+                      {
+                        fontSize: 14, minWidth: 54, textAlign: 'right',
+                        color: !sigue && sinDinero ? C.peligro : C.textoSuave,
+                      },
+                    ]}
+                  >
                     {precio(j.dinero, moneda)}
                   </Text>
                 </View>
