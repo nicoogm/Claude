@@ -83,7 +83,7 @@ function SelloRemate({ remate, onFin }: { remate: Remate; onFin: () => void }) {
 }
 
 export default function Subasta({ partida }: { partida: Partida }) {
-  const { pujar, pasar, descartar, deshacer, pasado } = usePartida();
+  const { pujar, pasar, deshacer, pasado } = usePartida();
   const subasta = partida.subasta!;
   const moneda = divisaPorId(partida.config.monedaId);
   const minimo = pujaMinimaActual(partida);
@@ -121,6 +121,11 @@ export default function Subasta({ partida }: { partida: Partida }) {
     );
     return rivales.length === 0;
   })();
+
+  // Sin pujas y siendo el último por decidir, el lote le cae a él por la
+  // mínima: conviene que lo sepa antes de darle a plantarse.
+  const ultimoEnDecidir =
+    !lider && subasta.activos.filter((id) => id !== deTurno.id).length === 0;
 
   const plantarse = () => {
     if (cierraElLote && lider) {
@@ -334,17 +339,16 @@ export default function Subasta({ partida }: { partida: Partida }) {
           </Text>
         )}
         <Boton
-          texto={lider ? `Me planto · ${cierraElLote ? 'cierra el lote' : 'no sigo'}` : 'Paso de este lote'}
+          texto={
+            lider
+              ? `Me planto · ${cierraElLote ? 'cierra el lote' : 'no sigo'}`
+              : ultimoEnDecidir
+                ? 'Si paso, el lote es mío igualmente'
+                : 'Paso de este lote'
+          }
           onPress={plantarse}
           variante="secundario"
         />
-        {!lider && (
-          <Pulsable onPress={descartar}>
-            <Text style={[S.cuerpo, { textAlign: 'center', fontSize: 12 }]}>
-              Retirar el lote sin subastarlo
-            </Text>
-          </Pulsable>
-        )}
       </View>
 
       {remate && <SelloRemate remate={remate} onFin={() => setRemate(null)} />}

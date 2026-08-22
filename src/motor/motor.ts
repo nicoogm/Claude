@@ -145,6 +145,17 @@ function pasarElTurno(p: Partida): Partida {
 
   if (s.lider !== null && rivales.length === 0) return adjudicar(p);
   if (s.lider === null && enPie.length === 0) return descartar(p);
+  /*
+   * Si nadie ha pujado y solo queda uno por decidir, el lote es suyo por la
+   * mínima: no hay a quién pasárselo. Así todo lote acaba adjudicado y el
+   * sorteo puede tener exactamente tantos lotes como huecos hay en la mesa.
+   */
+  if (s.lider === null && enPie.length === 1) {
+    return adjudicar(
+      { ...p, subasta: { ...s, pujaActual: p.config.pujaMin, lider: enPie[0].id } },
+      true,
+    );
+  }
 
   // El siguiente en el orden circular a partir de quien acaba de decidir.
   const candidatos = s.lider === null ? enPie : rivales;

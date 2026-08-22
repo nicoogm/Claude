@@ -13,12 +13,15 @@ el resto canta en voz alta.
 | Divisa | De broma y elegible: cabras 🐐, gambas 🦐, plátanos 🍌 o patos 🦆. |
 | Falta de dinero | Auto-relleno: cuando ya nadie puede pujar, los huecos vacíos se completan con los siguientes ítems de la lista, por orden. |
 | Temas | 10 listas precargadas de ~100 ítems + editor para crear listas propias. De cada lista se sortean los ítems de la partida. |
-| Ganador | No automático. Se muestran las plantillas y el grupo vota dentro de la app. |
+| Ganador | No automático. Se muestran las plantillas y el grupo vota dentro de la app, con segunda vuelta si hay empate. |
 
 ## 2. Parámetros configurables
 
 - Número de jugadores (2-10) y sus nombres.
 - Divisa (cabras por defecto) y presupuesto por jugador (por defecto 20).
+- Salen a subasta exactamente `jugadores × huecos` lotes, sorteados al azar de
+  la lista del tema. Como todo lote acaba adjudicado, no hay nada que sobre y
+  no es un ajuste que haya que tocar.
 - Número de huecos por jugador (por defecto 3).
 - Tema / lista de ítems.
 - Ítems que salen a subasta: de la lista del tema (80-115 nombres cada una) se
@@ -40,7 +43,8 @@ CONFIG → ELEGIR TEMA → [ SUBASTA_ÍTEM → ADJUDICACIÓN ]×N → AUTO-RELLE
 3. El turno pasa al siguiente que siga vivo en el lote, saltándose al líder:
    nadie se puja a sí mismo.
 4. Cuando todos los rivales se han plantado, el lote se adjudica al líder.
-5. Si todos se plantan sin pujar, el lote se descarta.
+5. Si todos se plantan sin pujar, el lote cae en el último que quedaba por
+   decidir, por la puja mínima: no hay a quién pasárselo.
 6. **El jugador que abre la puja rota en cada lote**, y siempre se abre desde la
    puja mínima.
 7. **Si solo queda uno que pueda pujar** —porque el resto tiene la plantilla
@@ -98,8 +102,9 @@ El `historial` de eventos es lo que hace posible el deshacer y el resumen final.
 4. **Subasta** — ítem grande, puja actual + líder, fila de jugadores con dinero
    y huecos, botones de puja rápida (+1 / +2 / +5), adjudicar, deshacer.
 5. **Resultados** — plantillas lado a lado con lo gastado en cada ítem.
-6. **Votación** — cada jugador vota la mejor plantilla ajena; se muestra el
-   recuento.
+6. **Votación** — cada jugador vota la mejor plantilla, **la suya incluida**;
+   se muestra el recuento y, si hay empate, se juega una segunda vuelta solo
+   entre las empatadas.
 
 ## 7. Stack y plan de trabajo
 

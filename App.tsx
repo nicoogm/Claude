@@ -44,8 +44,8 @@ export default function App() {
         ordenAleatorio: true,
       },
       ajustes.nombres,
-      // Cada partida juega con un puñado de lotes sacados al azar del tema.
-      sortearItems(tema.items, ajustes.itemsEnJuego),
+      // Un lote por hueco de la mesa, sacados al azar de la lista del tema.
+      sortearItems(tema.items, ajustes.nombres.length * ajustes.huecos),
     );
     setVista('juego');
   };
@@ -82,7 +82,7 @@ export default function App() {
 
         {vista === 'tema' && ajustes && (
           <SeleccionTema
-            itemsNecesarios={ajustes.itemsEnJuego}
+            itemsNecesarios={ajustes.nombres.length * ajustes.huecos}
             onElegir={empezar}
             onVolver={() => setVista('config')}
           />

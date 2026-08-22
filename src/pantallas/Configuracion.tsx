@@ -11,8 +11,6 @@ export type Ajustes = {
   huecos: number;
   pujaMin: number;
   incremento: number;
-  /** Cuántos ítems se sortean de la lista del tema para esta partida. */
-  itemsEnJuego: number;
   monedaId: string;
 };
 
@@ -22,7 +20,6 @@ const AJUSTES_INICIALES: Ajustes = {
   huecos: 3,
   pujaMin: 1,
   incremento: 1,
-  itemsEnJuego: 18,
   monedaId: 'cabras',
 };
 
@@ -91,24 +88,15 @@ export default function Configuracion({ onContinuar }: { onContinuar: (a: Ajuste
   const set = <K extends keyof Ajustes>(k: K, v: Ajustes[K]) =>
     setA((prev) => ({ ...prev, [k]: v }));
 
-  const minimoItems = a.nombres.length * a.huecos;
+  // Salen a subasta exactamente tantos lotes como huecos hay en la mesa: todos
+  // acaban adjudicados, así que no hay nada que sobre ni que configurar.
+  const lotes = a.nombres.length * a.huecos;
 
   const cambiarNumJugadores = (n: number) => {
     const nombres = [...a.nombres];
     while (nombres.length < n) nombres.push('');
-    setA((prev) => ({
-      ...prev,
-      nombres: nombres.slice(0, n),
-      itemsEnJuego: Math.max(prev.itemsEnJuego, n * prev.huecos),
-    }));
+    set('nombres', nombres.slice(0, n));
   };
-
-  const cambiarHuecos = (h: number) =>
-    setA((prev) => ({
-      ...prev,
-      huecos: h,
-      itemsEnJuego: Math.max(prev.itemsEnJuego, prev.nombres.length * h),
-    }));
 
   return (
     <ScrollView style={S.pantalla} contentContainerStyle={[S.contenido, { paddingTop: 12 }]}>
@@ -203,7 +191,7 @@ export default function Configuracion({ onContinuar }: { onContinuar: (a: Ajuste
             etiqueta="Huecos por jugador"
             ayuda="cuántos lotes hay que llenar"
             valor={a.huecos} min={1} max={11}
-            onChange={cambiarHuecos}
+            onChange={(v) => set('huecos', v)}
           />
           <Contador
             etiqueta="Puja mínima" ayuda="para abrir un lote" 
@@ -221,15 +209,10 @@ export default function Configuracion({ onContinuar }: { onContinuar: (a: Ajuste
       <Aparecer retraso={200}>
         <View style={[S.tarjeta, { marginBottom: 20 }]}>
           <Text style={S.eyebrow}>El sorteo</Text>
-          <Contador
-            etiqueta="Lotes que salen a subasta"
-            valor={a.itemsEnJuego} min={minimoItems} max={60}
-            onChange={(v) => set('itemsEnJuego', v)}
-          />
-          <Text style={[S.cuerpo, { fontSize: 12, marginTop: 4 }]}>
-            Se eligen al azar de la lista del tema, así que dos partidas nunca
-            salen iguales. Con {a.nombres.length} jugadores y {a.huecos} huecos
-            hacen falta {minimoItems} como mínimo.
+          <Text style={[S.cuerpo, { fontSize: 13, marginTop: 6 }]}>
+            Saldrán <Text style={{ color: C.laton }}>{lotes} lotes</Text>, uno por
+            hueco de la mesa, elegidos al azar entre todos los del tema. Cada uno
+            acaba en manos de alguien, así que dos partidas nunca salen iguales.
           </Text>
         </View>
       </Aparecer>
