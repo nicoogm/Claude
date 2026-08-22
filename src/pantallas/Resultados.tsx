@@ -14,7 +14,9 @@ export default function Resultados({
   onSalir: () => void;
 }) {
   const moneda = divisaPorId(partida.config.monedaId);
-  const huboAuto = partida.jugadores.some((j) => j.plantilla.some((a) => a.auto));
+  const huboRelleno = partida.jugadores.some((j) =>
+    j.plantilla.some((a) => a.modo === 'relleno'),
+  );
 
   return (
     <ScrollView style={S.pantalla} contentContainerStyle={[S.contenido, { paddingTop: 12 }]}>
@@ -24,8 +26,8 @@ export default function Resultados({
           Las plantillas
         </Text>
         <Text style={[S.cuerpo, { marginTop: 8, marginBottom: 22 }]}>
-          {huboAuto
-            ? 'Los lotes con ✱ se repartieron al quedarse la mesa sin dinero.'
+          {huboRelleno
+            ? 'Los lotes con ✱ se repartieron al quedarse la mesa sin cabras.'
             : 'Draft completado. Que empiece el debate.'}
         </Text>
       </Aparecer>
@@ -48,15 +50,22 @@ export default function Resultados({
                     <View key={k} style={[S.fila, { justifyContent: 'space-between', paddingVertical: 5 }]}>
                       <Text style={{ fontFamily: F.fuerte, fontSize: 15, color: C.texto, flex: 1 }}>
                         {a.item.nombre}
-                        {a.auto ? ' ✱' : ''}
+                        {a.modo === 'relleno' ? ' ✱' : ''}
                       </Text>
                       <Text
                         style={[
                           S.cifra,
-                          { fontSize: 14, color: a.auto ? C.textoDebil : C.laton },
+                          {
+                            fontSize: 14,
+                            color: a.modo === 'puja' ? C.laton : C.textoDebil,
+                          },
                         ]}
                       >
-                        {a.auto ? 'gratis' : precio(a.precio, moneda)}
+                        {a.modo === 'relleno'
+                          ? 'gratis'
+                          : a.modo === 'forzado'
+                            ? `${precio(a.precio, moneda)} · sin rival`
+                            : precio(a.precio, moneda)}
                       </Text>
                     </View>
                   ))}

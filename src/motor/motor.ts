@@ -158,24 +158,27 @@ function pasarElTurno(p: Partida): Partida {
   };
 }
 
-/** Cierra el lote: se lo lleva el líder. */
-export function adjudicar(p: Partida): Partida {
+/**
+ * Cierra el lote: se lo lleva el líder. `forzado` marca el caso en que era el
+ * único que podía quedárselo y por tanto no ha habido puja de verdad.
+ */
+export function adjudicar(p: Partida, forzado = false): Partida {
   if (!p.subasta) throw new Error('No hay subasta abierta');
   const { item, pujaActual, lider } = p.subasta;
   if (lider === null) return descartar(p);
 
-  const evento: Evento = {
-    tipo: 'adjudicacion',
-    jugadorId: lider,
-    itemId: item.id,
-    precio: pujaActual,
-  };
+  const evento: Evento = forzado
+    ? { tipo: 'forzada', jugadorId: lider, itemId: item.id, precio: pujaActual }
+    : { tipo: 'adjudicacion', jugadorId: lider, itemId: item.id, precio: pujaActual };
   const jugadores = p.jugadores.map((j) =>
     j.id === lider
       ? {
           ...j,
           dinero: j.dinero - pujaActual,
-          plantilla: [...j.plantilla, { item, precio: pujaActual, auto: false }],
+          plantilla: [
+            ...j.plantilla,
+            { item, precio: pujaActual, modo: forzado ? ('forzado' as const) : ('puja' as const) },
+          ],
         }
       : j,
   );
@@ -234,7 +237,25 @@ function siguienteItem(p: Partida): Partida {
     },
   };
   // Si nadie puede abrir este lote, se descarta y se pasa al siguiente.
-  return enPie.length === 0 ? descartar(conLote) : conLote;
+  if (enPie.length === 0) return descartar(conLote);
+
+  /*
+   * Si solo queda uno con huecos y dinero, no hay contra quién pujar ni nada
+   * que decidir: el lote es suyo por la puja mínima, sin opción a plantarse.
+   * Cuando se le acaben las cabras, `quedanPujadores` se vuelve falso y el
+   * resto de lotes le caen ya gratis por el auto-relleno.
+   */
+  if (enPie.length === 1) {
+    return adjudicar(
+      {
+        ...conLote,
+        subasta: { ...conLote.subasta!, pujaActual: p.config.pujaMin, lider: enPie[0].id },
+      },
+      true,
+    );
+  }
+
+  return conLote;
 }
 
 /**
@@ -257,7 +278,7 @@ export function aplicarAutoRelleno(p: Partida): Partida {
     for (const j of incompletos) {
       if (repartido >= bombo.length) break;
       const item = bombo[repartido++];
-      j.plantilla.push({ item, precio: 0, auto: true });
+      j.plantilla.push({ item, precio: 0, modo: 'relleno' });
       historial.push({ tipo: 'autoRelleno', jugadorId: j.id, itemId: item.id });
     }
   }

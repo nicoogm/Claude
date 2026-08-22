@@ -43,7 +43,12 @@ CONFIG → ELEGIR TEMA → [ SUBASTA_ÍTEM → ADJUDICACIÓN ]×N → AUTO-RELLE
 5. Si todos se plantan sin pujar, el lote se descarta.
 6. **El jugador que abre la puja rota en cada lote**, y siempre se abre desde la
    puja mínima.
-7. Corrección de errores: botón de deshacer la última acción.
+7. **Si solo queda uno que pueda pujar** —porque el resto tiene la plantilla
+   llena o se ha quedado sin dinero— el lote es suyo por la puja mínima, de
+   forma automática: no hay contra quién pujar ni opción a plantarse. Cuando a
+   él también se le acabe el dinero, el resto de huecos se completa con el
+   auto-relleno.
+8. Corrección de errores: botón de deshacer la última acción.
 
 ## 4. Reglas del motor
 

@@ -159,12 +159,11 @@ describe('cierre del lote', () => {
 
   it('deja fuera del lote a quien no llega al mínimo', () => {
     let p = nueva(12, { presupuesto: 5 });
-    p = pujar(p, 'j1', 5);   // j1 lo apuesta todo
-    p = pujar(p, 'j2', 5);   // no puede: pide 6
-    assert.equal(turno(p), 'j3');
-    p = pasar(p, 'j3');
-    // j2 tampoco podía superar los 5, así que el lote se cierra para j1.
+    p = pujar(p, 'j1', 5);   // Ana lo apuesta todo: el mínimo pasa a 6
+    // Nadie puede superarla, así que el lote se cierra sin más turnos.
     assert.equal(j(p, 'j1').plantilla.length, 1);
+    assert.equal(j(p, 'j1').dinero, 0);
+    assert.equal(p.subasta?.item.id, 'i2');
   });
 
   it('quien tiene la plantilla llena no entra en los lotes siguientes', () => {
@@ -181,24 +180,28 @@ describe('cierre del lote', () => {
 describe('fin de partida y auto-relleno', () => {
   it('termina cuando todas las plantillas están llenas', () => {
     let p = nueva(9);
-    for (const id of ['j1', 'j1', 'j1', 'j2', 'j2', 'j2', 'j3', 'j3', 'j3']) {
-      p = compra(p, id, 1);
-    }
+    // Ana y Bea llenan las suyas pujando; a Caj le caen las tres restantes.
+    for (const id of ['j1', 'j1', 'j1', 'j2', 'j2', 'j2']) p = compra(p, id, 1);
     assert.equal(p.fase, 'resultados');
     assert.ok(p.jugadores.every((x) => x.plantilla.length === 3));
+    assert.deepEqual(
+      j(p, 'j3').plantilla.map((a) => a.modo),
+      ['forzado', 'forzado', 'forzado'],
+    );
   });
 
   it('corta y reparte en cuanto ya nadie puede pujar', () => {
     let p = nueva(12, { presupuesto: 5 });
     p = compra(p, 'j1', 5);
     p = compra(p, 'j2', 5);
-    assert.equal(p.fase, 'subasta');
-    p = compra(p, 'j3', 5);
+    // Caj se queda sola: los lotes le caen al mínimo hasta gastar sus 5 cabras.
     assert.equal(p.fase, 'resultados');
-    assert.deepEqual(j(p, 'j1').plantilla.map((a) => a.item.id), ['i1', 'i4', 'i7']);
-    assert.deepEqual(j(p, 'j2').plantilla.map((a) => a.item.id), ['i2', 'i5', 'i8']);
-    assert.deepEqual(j(p, 'j3').plantilla.map((a) => a.item.id), ['i3', 'i6', 'i9']);
-    assert.deepEqual(p.descartados.map((i) => i.id), ['i10', 'i11', 'i12']);
+    assert.equal(j(p, 'j3').plantilla.length, 3);
+    assert.deepEqual(j(p, 'j3').plantilla.map((a) => a.precio), [1, 1, 1]);
+    assert.equal(j(p, 'j3').dinero, 2);
+    // Ana y Bea, sin cabras, completan sus huecos con el auto-relleno.
+    assert.ok(j(p, 'j1').plantilla.slice(1).every((a) => a.modo === 'relleno'));
+    assert.ok(p.jugadores.every((x) => x.plantilla.length === 3));
   });
 
   it('reparte los sobrantes al agotarse la lista', () => {
@@ -212,7 +215,7 @@ describe('fin de partida y auto-relleno', () => {
     assert.equal(p.fase, 'resultados');
     assert.deepEqual(j(p, 'j2').plantilla.map((a) => a.item.id), ['i4']);
     assert.deepEqual(j(p, 'j3').plantilla.map((a) => a.item.id), ['i5']);
-    assert.ok(j(p, 'j2').plantilla[0].auto);
+    assert.equal(j(p, 'j2').plantilla[0].modo, 'relleno');
     assert.equal(j(p, 'j2').plantilla[0].precio, 0);
   });
 
@@ -290,5 +293,43 @@ describe('quien no llega al importe queda fuera', () => {
     // Lote nuevo: con 1 cabra Ana puede abrir, porque la mínima es 1.
     p = compra(p, 'j2', 1);
     assert.ok(p.subasta!.activos.includes('j1'));
+  });
+});
+
+describe('cuando solo queda uno que pueda pujar', () => {
+  it('el lote es suyo por la puja mínima, sin opción a plantarse', () => {
+    let p = nueva(12);
+    // Ana y Bea llenan sus tres huecos; Caj se queda sola con huecos libres.
+    for (const id of ['j1', 'j1', 'j1', 'j2', 'j2', 'j2']) p = compra(p, id, 1);
+    const caj = j(p, 'j3');
+    assert.equal(caj.plantilla.length, 3);
+    assert.ok(caj.plantilla.every((a) => a.modo === 'forzado'));
+    assert.ok(caj.plantilla.every((a) => a.precio === p.config.pujaMin));
+  });
+
+  it('respeta la puja mínima configurada, no siempre 1', () => {
+    let p = nueva(12, { pujaMin: 3 });
+    for (const id of ['j1', 'j1', 'j1', 'j2', 'j2', 'j2']) p = compra(p, id, 3);
+    assert.deepEqual(j(p, 'j3').plantilla.map((a) => a.precio), [3, 3, 3]);
+  });
+
+  it('en cuanto se queda sin cabras, los siguientes le caen gratis', () => {
+    let p = nueva(12, { presupuesto: 4 });
+    p = compra(p, 'j3', 4);                       // Caj se funde todo en un lote
+    for (const id of ['j1', 'j1', 'j1']) p = compra(p, id, 1);
+    // Bea se queda sola y se lleva los suyos forzados al mínimo.
+    assert.ok(j(p, 'j2').plantilla.every((a) => a.modo === 'forzado'));
+    // Caj, con huecos pero sin cabras, los completa por auto-relleno.
+    assert.equal(j(p, 'j3').dinero, 0);
+    assert.deepEqual(j(p, 'j3').plantilla.map((a) => a.modo), ['puja', 'relleno', 'relleno']);
+    assert.equal(p.fase, 'resultados');
+  });
+
+  it('nunca se le ofrece plantarse: no hay subasta abierta para él', () => {
+    let p = nueva(12);
+    for (const id of ['j1', 'j1', 'j1', 'j2', 'j2', 'j2']) p = compra(p, id, 1);
+    // La partida ya ha terminado: no queda ningún turno que ofrecerle.
+    assert.equal(p.subasta, null);
+    assert.equal(p.fase, 'resultados');
   });
 });

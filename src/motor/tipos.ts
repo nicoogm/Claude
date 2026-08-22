@@ -7,8 +7,15 @@ export type Tema = {
   propio: boolean;
 };
 
-/** Un ítem ya en la plantilla de un jugador. `auto` = llegó por auto-relleno. */
-export type Adquisicion = { item: Item; precio: number; auto: boolean };
+/**
+ * Cómo ha llegado un ítem a la plantilla:
+ * - `puja`: se lo llevó pujando contra alguien.
+ * - `forzado`: era el único que podía llevárselo, así que lo paga al mínimo.
+ * - `relleno`: la partida acabó y se le asignó gratis para completar huecos.
+ */
+export type ModoAdquisicion = 'puja' | 'forzado' | 'relleno';
+
+export type Adquisicion = { item: Item; precio: number; modo: ModoAdquisicion };
 
 export type Jugador = {
   id: string;
@@ -46,6 +53,7 @@ export type Evento =
   | { tipo: 'puja'; jugadorId: string; itemId: string; importe: number }
   | { tipo: 'adjudicacion'; jugadorId: string; itemId: string; precio: number }
   | { tipo: 'plante'; jugadorId: string; itemId: string }
+  | { tipo: 'forzada'; jugadorId: string; itemId: string; precio: number }
   | { tipo: 'descarte'; itemId: string }
   | { tipo: 'autoRelleno'; jugadorId: string; itemId: string };
 

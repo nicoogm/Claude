@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ScrollView, Text, TextInput, View } from 'react-native';
 import { DIVISAS, divisaPorId } from '../datos/divisas.ts';
+import { guardarAjustes, leerAjustes } from '../estado/preferencias.ts';
 import { C, F, S, colorJugador } from '../ui/tema.ts';
 import { Aparecer, Boton, Pulsable } from '../ui/componentes.tsx';
 
@@ -74,6 +75,19 @@ function Contador({
 
 export default function Configuracion({ onContinuar }: { onContinuar: (a: Ajustes) => void }) {
   const [a, setA] = useState<Ajustes>(AJUSTES_INICIALES);
+
+  // Al abrir, se recupera la última mesa: los nombres son lo que más cansa
+  // reescribir cuando se encadenan partidas.
+  useEffect(() => {
+    let vivo = true;
+    leerAjustes().then((guardado) => {
+      if (vivo && guardado) setA((prev) => ({ ...prev, ...guardado }));
+    });
+    return () => {
+      vivo = false;
+    };
+  }, []);
+
   const set = <K extends keyof Ajustes>(k: K, v: Ajustes[K]) =>
     setA((prev) => ({ ...prev, [k]: v }));
 
@@ -223,7 +237,11 @@ export default function Configuracion({ onContinuar }: { onContinuar: (a: Ajuste
       <Aparecer retraso={250}>
         <Boton
           texto="Elegir el tema →"
-          onPress={() => onContinuar({ ...a, nombres: a.nombres.map(nombreDe) })}
+          onPress={() => {
+            const listos = { ...a, nombres: a.nombres.map(nombreDe) };
+            guardarAjustes(listos);
+            onContinuar(listos);
+          }}
         />
       </Aparecer>
     </ScrollView>
