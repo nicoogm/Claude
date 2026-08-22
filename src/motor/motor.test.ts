@@ -349,3 +349,24 @@ describe('cuando solo queda uno que pueda pujar', () => {
     assert.equal(p.fase, 'resultados');
   });
 });
+
+describe('reparto cuando varios se quedan sin cabras', () => {
+  it('asigna los lotes siguiendo el orden de aparición', () => {
+    // Presupuesto 2: las tres se quedan a cero enseguida.
+    let p = crearPartida(
+      { ...config, presupuesto: 2 },
+      ['Ana', 'Bea', 'Caj'],
+      items(12),
+    );
+    p = pujar(p, 'j1', 2);   // nadie puede superarla: i1 para Ana, y a cero
+    p = pujar(p, 'j2', 2);   // i2 para Bea
+    // Caj se queda sola: i3 e i4 le caen forzados al mínimo y agota sus cabras.
+    assert.equal(p.fase, 'resultados');
+    assert.deepEqual(j(p, 'j1').plantilla.map((a) => a.item.id), ['i1', 'i5', 'i8']);
+    assert.deepEqual(j(p, 'j2').plantilla.map((a) => a.item.id), ['i2', 'i6', 'i9']);
+    assert.deepEqual(j(p, 'j3').plantilla.map((a) => a.item.id), ['i3', 'i4', 'i7']);
+    // Lo repartido al final es gratis; lo forzado se paga a 1.
+    assert.deepEqual(j(p, 'j1').plantilla.map((a) => a.modo), ['puja', 'relleno', 'relleno']);
+    assert.deepEqual(j(p, 'j3').plantilla.map((a) => a.modo), ['forzado', 'forzado', 'relleno']);
+  });
+});
