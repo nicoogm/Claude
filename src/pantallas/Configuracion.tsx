@@ -9,7 +9,6 @@ export type Ajustes = {
   nombres: string[];
   presupuesto: number;
   huecos: number;
-  pujaMin: number;
   incremento: number;
   monedaId: string;
 };
@@ -18,7 +17,6 @@ const AJUSTES_INICIALES: Ajustes = {
   nombres: ['', '', ''],
   presupuesto: 20,
   huecos: 3,
-  pujaMin: 1,
   incremento: 1,
   monedaId: 'cabras',
 };
@@ -194,12 +192,7 @@ export default function Configuracion({ onContinuar }: { onContinuar: (a: Ajuste
             onChange={(v) => set('huecos', v)}
           />
           <Contador
-            etiqueta="Puja mínima" ayuda="para abrir un lote" 
-            valor={a.pujaMin} min={1} max={10}
-            onChange={(v) => set('pujaMin', v)}
-          />
-          <Contador
-            etiqueta="Subida mínima" ayuda="lo que hay que superar al líder"
+            etiqueta="Subida mínima" ayuda="lo que hay que superar al líder" 
             valor={a.incremento} min={1} max={10}
             onChange={(v) => set('incremento', v)}
           />

@@ -81,7 +81,7 @@ export default function Resultados({
 
       <View style={{ height: 20 }} />
       <Aparecer retraso={200} style={{ gap: 10 }}>
-        <Boton texto="Votar la mejor plantilla →" onPress={onVotar} />
+        <Boton texto="Elegir la mejor plantilla →" onPress={onVotar} />
         <Boton texto="Nueva partida" onPress={onSalir} variante="fantasma" />
       </Aparecer>
     </ScrollView>

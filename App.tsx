@@ -39,7 +39,8 @@ export default function App() {
         monedaId: ajustes.monedaId,
         presupuesto: ajustes.presupuesto,
         huecos: ajustes.huecos,
-        pujaMin: ajustes.pujaMin,
+        // Un lote siempre se abre por una cabra; no es configurable.
+        pujaMin: 1,
         incremento: ajustes.incremento,
         ordenAleatorio: true,
       },
@@ -101,7 +102,11 @@ export default function App() {
         )}
 
         {vista === 'votacion' && partida && (
-          <Votacion partida={partida} onSalir={volverAlInicio} />
+          <Votacion
+            partida={partida}
+            onVolver={() => setVista('juego')}
+            onSalir={volverAlInicio}
+          />
         )}
       </Aparecer>
     </SafeAreaView>

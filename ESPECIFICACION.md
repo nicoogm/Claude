@@ -13,7 +13,7 @@ el resto canta en voz alta.
 | Divisa | De broma y elegible: cabras 🐐, gambas 🦐, plátanos 🍌 o patos 🦆. |
 | Falta de dinero | Auto-relleno: cuando ya nadie puede pujar, los huecos vacíos se completan con los siguientes ítems de la lista, por orden. |
 | Temas | 10 listas precargadas de ~100 ítems + editor para crear listas propias. De cada lista se sortean los ítems de la partida. |
-| Ganador | No automático. Se muestran las plantillas y el grupo vota dentro de la app, con segunda vuelta si hay empate. |
+| Ganador | No automático. Se muestran todas las plantillas juntas y el grupo elige una desde el móvil. |
 
 ## 2. Parámetros configurables
 
@@ -27,7 +27,8 @@ el resto canta en voz alta.
 - Ítems que salen a subasta: de la lista del tema (80-115 nombres cada una) se
   sortean solo los de esta partida, así que dos partidas del mismo tema no se
   parecen. Por defecto 18, con un mínimo de jugadores × huecos.
-- Puja mínima inicial (por defecto 1) e incremento mínimo (por defecto 1).
+- Incremento mínimo para superar al líder (por defecto 1). La puja mínima de
+  apertura es siempre 1 y no se configura.
 
 ## 3. Flujo de la partida
 
@@ -37,9 +38,9 @@ CONFIG → ELEGIR TEMA → [ SUBASTA_ÍTEM → ADJUDICACIÓN ]×N → AUTO-RELLE
 
 **Subasta de un lote, por turnos**
 1. La app muestra el lote y, arriba del todo, de quién es el turno.
-2. Ese jugador elige: **subir** (cualquier importe desde la puja mínima, que es
-   la actual más el incremento) o **plantarse**, que le deja fuera de ese lote
-   —no de la partida.
+2. Ese jugador elige: **subir** (desde 1 si el lote está sin abrir, o desde la
+   puja actual más el incremento) o **plantarse**, que le deja fuera de ese
+   lote —no de la partida.
 3. El turno pasa al siguiente que siga vivo en el lote, saltándose al líder:
    nadie se puja a sí mismo.
 4. Cuando todos los rivales se han plantado, el lote se adjudica al líder.
@@ -102,9 +103,8 @@ El `historial` de eventos es lo que hace posible el deshacer y el resumen final.
 4. **Subasta** — ítem grande, puja actual + líder, fila de jugadores con dinero
    y huecos, botones de puja rápida (+1 / +2 / +5), adjudicar, deshacer.
 5. **Resultados** — plantillas lado a lado con lo gastado en cada ítem.
-6. **Votación** — cada jugador vota la mejor plantilla, **la suya incluida**;
-   se muestra el recuento y, si hay empate, se juega una segunda vuelta solo
-   entre las empatadas.
+6. **Veredicto** — todas las plantillas juntas en una pantalla; el grupo debate
+   y quien lleva el móvil toca la ganadora. No hay votación por turnos.
 
 ## 7. Stack y plan de trabajo
 
