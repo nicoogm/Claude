@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, SafeAreaView, StatusBar, View } from 'react-native';
 import { useFonts, BebasNeue_400Regular } from '@expo-google-fonts/bebas-neue';
 import {
@@ -6,22 +6,31 @@ import {
   Manrope_700Bold,
   Manrope_800ExtraBold,
 } from '@expo-google-fonts/manrope';
-import Configuracion, { type Ajustes } from './src/pantallas/Configuracion.tsx';
+import Menu from './src/pantallas/Menu.tsx';
+import Configuracion, {
+  AJUSTES_INICIALES,
+  type Ajustes,
+} from './src/pantallas/Configuracion.tsx';
+import AjustesPantalla from './src/pantallas/Ajustes.tsx';
+import Reglas from './src/pantallas/Reglas.tsx';
 import SeleccionTema from './src/pantallas/SeleccionTema.tsx';
 import Subasta from './src/pantallas/Subasta.tsx';
 import Resultados from './src/pantallas/Resultados.tsx';
 import Votacion from './src/pantallas/Votacion.tsx';
 import { usePartida } from './src/estado/partida.ts';
+import { guardarAjustes, leerAjustes } from './src/estado/preferencias.ts';
 import { sortearItems } from './src/motor/motor.ts';
 import type { Tema } from './src/motor/tipos.ts';
 import { C } from './src/ui/tema.ts';
 import { Aparecer } from './src/ui/componentes.tsx';
 
-type Vista = 'config' | 'tema' | 'juego' | 'votacion';
+type Vista = 'menu' | 'config' | 'ajustes' | 'reglas' | 'tema' | 'juego' | 'veredicto';
 
 export default function App() {
-  const [vista, setVista] = useState<Vista>('config');
-  const [ajustes, setAjustes] = useState<Ajustes | null>(null);
+  const [vista, setVista] = useState<Vista>('menu');
+  const [ajustes, setAjustes] = useState<Ajustes>(AJUSTES_INICIALES);
+  // Desde dónde se abrió Ajustes, para devolver al jugador a su sitio.
+  const [vueltaDeAjustes, setVueltaDeAjustes] = useState<Vista>('menu');
   const { partida, iniciar, salir } = usePartida();
 
   const [fuentesListas] = useFonts({
@@ -31,8 +40,24 @@ export default function App() {
     Manrope_800ExtraBold,
   });
 
+  // La última mesa y sus reglas se recuperan al abrir la app.
+  useEffect(() => {
+    let vivo = true;
+    leerAjustes().then((guardado) => {
+      if (vivo && guardado) setAjustes((prev) => ({ ...prev, ...guardado }));
+    });
+    return () => {
+      vivo = false;
+    };
+  }, []);
+
+  /** Todo cambio de ajustes se guarda: no hay botón de "aplicar". */
+  const cambiarAjustes = (a: Ajustes) => {
+    setAjustes(a);
+    guardarAjustes(a);
+  };
+
   const empezar = (tema: Tema) => {
-    if (!ajustes) return;
     iniciar(
       {
         temaId: tema.id,
@@ -51,9 +76,14 @@ export default function App() {
     setVista('juego');
   };
 
-  const volverAlInicio = () => {
+  const volverAlMenu = () => {
     salir();
-    setVista('config');
+    setVista('menu');
+  };
+
+  const abrirAjustes = (desde: Vista) => {
+    setVueltaDeAjustes(desde);
+    setVista('ajustes');
   };
 
   if (!fuentesListas) {
@@ -65,23 +95,48 @@ export default function App() {
   }
 
   // Una key por vista para que cada pantalla se monte de nuevo y entre animada.
-  const clave =
-    vista === 'juego' && partida ? `juego-${partida.fase}` : vista;
+  const clave = vista === 'juego' && partida ? `juego-${partida.fase}` : vista;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.fondo }}>
       <StatusBar barStyle="light-content" backgroundColor={C.fondo} />
       <Aparecer key={clave} desplazamiento={10} style={{ flex: 1 }}>
-        {vista === 'config' && (
-          <Configuracion
-            onContinuar={(a) => {
-              setAjustes(a);
-              setVista('tema');
+        {vista === 'menu' && (
+          <Menu
+            onIr={(clave) => {
+              if (clave === 'jugar') setVista('config');
+              if (clave === 'reglas') setVista('reglas');
+              if (clave === 'ajustes') abrirAjustes('menu');
             }}
           />
         )}
 
-        {vista === 'tema' && ajustes && (
+        {vista === 'reglas' && (
+          <Reglas monedaId={ajustes.monedaId} onVolver={() => setVista('menu')} />
+        )}
+
+        {vista === 'ajustes' && (
+          <AjustesPantalla
+            ajustes={ajustes}
+            onCambiar={cambiarAjustes}
+            onVolver={() => setVista(vueltaDeAjustes)}
+          />
+        )}
+
+        {vista === 'config' && (
+          <Configuracion
+            ajustes={ajustes}
+            onCambiar={cambiarAjustes}
+            onContinuar={(a) => {
+              cambiarAjustes(a);
+              setVista('tema');
+            }}
+            onAjustes={() => abrirAjustes('config')}
+            onVolver={() => setVista('menu')}
+          />
+        )}
+
+        {vista === 'tema' && (
           <SeleccionTema
             itemsNecesarios={ajustes.nombres.length * ajustes.huecos}
             onElegir={empezar}
@@ -90,22 +145,22 @@ export default function App() {
         )}
 
         {vista === 'juego' && partida && partida.fase === 'subasta' && (
-          <Subasta partida={partida} />
+          <Subasta partida={partida} onSalir={volverAlMenu} />
         )}
 
         {vista === 'juego' && partida && partida.fase === 'resultados' && (
           <Resultados
             partida={partida}
-            onVotar={() => setVista('votacion')}
-            onSalir={volverAlInicio}
+            onVotar={() => setVista('veredicto')}
+            onSalir={volverAlMenu}
           />
         )}
 
-        {vista === 'votacion' && partida && (
+        {vista === 'veredicto' && partida && (
           <Votacion
             partida={partida}
             onVolver={() => setVista('juego')}
-            onSalir={volverAlInicio}
+            onSalir={volverAlMenu}
           />
         )}
       </Aparecer>

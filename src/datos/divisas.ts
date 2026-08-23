@@ -3,13 +3,15 @@ export type Divisa = {
   singular: string;
   plural: string;
   emoji: string;
+  /** Para que los textos concuerden: «las cabras gastadas», «los patos gastados». */
+  femenino: boolean;
 };
 
 export const DIVISAS: Divisa[] = [
-  { id: 'cabras', singular: 'cabra', plural: 'cabras', emoji: '🐐' },
-  { id: 'gambas', singular: 'gamba', plural: 'gambas', emoji: '🦐' },
-  { id: 'platanos', singular: 'plátano', plural: 'plátanos', emoji: '🍌' },
-  { id: 'patos', singular: 'pato', plural: 'patos', emoji: '🦆' },
+  { id: 'cabras', singular: 'cabra', plural: 'cabras', emoji: '🐐', femenino: true },
+  { id: 'gambas', singular: 'gamba', plural: 'gambas', emoji: '🦐', femenino: true },
+  { id: 'platanos', singular: 'plátano', plural: 'plátanos', emoji: '🍌', femenino: false },
+  { id: 'patos', singular: 'pato', plural: 'patos', emoji: '🦆', femenino: false },
 ];
 
 export const divisaPorId = (id: string): Divisa =>
@@ -21,3 +23,9 @@ export const precio = (n: number, d: Divisa) => `${n} ${d.emoji}`;
 /** Formato largo para textos: «1 cabra», «12 cabras». */
 export const precioLargo = (n: number, d: Divisa) =>
   `${n} ${n === 1 ? d.singular : d.plural}`;
+
+/** «las cabras» / «los patos». */
+export const articulo = (d: Divisa) => (d.femenino ? 'las' : 'los');
+
+/** «gastadas» / «gastados», concordando con la divisa. */
+export const gastadas = (d: Divisa) => (d.femenino ? 'gastadas' : 'gastados');

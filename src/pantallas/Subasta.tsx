@@ -3,9 +3,11 @@ import { Animated, Easing, ScrollView, Text, View } from 'react-native';
 import { huecosLibres, pujaMinimaActual } from '../motor/motor.ts';
 import type { Partida } from '../motor/tipos.ts';
 import { usePartida } from '../estado/partida.ts';
-import { divisaPorId, precio, precioLargo } from '../datos/divisas.ts';
+import { articulo, divisaPorId, gastadas, precio, precioLargo } from '../datos/divisas.ts';
 import { C, F, S, colorJugador, sombra } from '../ui/tema.ts';
-import { Aparecer, Boton, Cifra, Progreso, Pulsable } from '../ui/componentes.tsx';
+import {
+  Aparecer, Boton, Cifra, Confirmacion, Progreso, Pulsable,
+} from '../ui/componentes.tsx';
 
 type Remate = { item: string; jugador: string; precio: string; color: string };
 
@@ -82,7 +84,13 @@ function SelloRemate({ remate, onFin }: { remate: Remate; onFin: () => void }) {
   );
 }
 
-export default function Subasta({ partida }: { partida: Partida }) {
+export default function Subasta({
+  partida,
+  onSalir,
+}: {
+  partida: Partida;
+  onSalir: () => void;
+}) {
   const { pujar, pasar, deshacer, pasado } = usePartida();
   const subasta = partida.subasta!;
   const moneda = divisaPorId(partida.config.monedaId);
@@ -97,6 +105,7 @@ export default function Subasta({ partida }: { partida: Partida }) {
   const tope = Math.min(deTurno.dinero, minimo + 30);
   const [importe, setImporte] = useState(minimo);
   const [remate, setRemate] = useState<Remate | null>(null);
+  const [preguntandoSalida, setPreguntandoSalida] = useState(false);
 
   // Cada turno nuevo arranca en la puja mínima que toca.
   useEffect(() => setImporte(minimo), [subasta.turno, subasta.item.id, minimo]);
@@ -146,8 +155,19 @@ export default function Subasta({ partida }: { partida: Partida }) {
     <View style={S.pantalla}>
       <View style={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: 12 }}>
         <View style={[S.fila, { justifyContent: 'space-between', marginBottom: 10 }]}>
-          <Text style={S.eyebrow}>
-            {adjudicados} de {totalItems} adjudicados · {partida.mazo.length} por salir
+          <Pulsable onPress={() => setPreguntandoSalida(true)}>
+            <View
+              style={{
+                width: 30, height: 30, borderRadius: 15, alignItems: 'center',
+                justifyContent: 'center', borderWidth: 1, borderColor: C.linea,
+                backgroundColor: C.superficie,
+              }}
+            >
+              <Text style={{ fontFamily: F.extra, fontSize: 14, color: C.textoSuave }}>✕</Text>
+            </View>
+          </Pulsable>
+          <Text style={[S.eyebrow, { flex: 1, textAlign: 'center' }]}>
+            {adjudicados} de {totalItems} · {partida.mazo.length} por salir
           </Text>
           <Pulsable onPress={deshacer} disabled={pasado.length === 0}>
             <Text
@@ -352,6 +372,21 @@ export default function Subasta({ partida }: { partida: Partida }) {
       </View>
 
       {remate && <SelloRemate remate={remate} onFin={() => setRemate(null)} />}
+
+      {preguntandoSalida && (
+        <Confirmacion
+          titulo="¿Dejar la partida?"
+          texto={
+            `Vais por el lote ${adjudicados + 1} de ${totalItems}. Si sales ahora se ` +
+            `pierde entera: las plantillas, las pujas y ${articulo(moneda)} ` +
+            `${moneda.plural} ${gastadas(moneda)}.`
+          }
+          confirmar="Salir al menú"
+          cancelar="Seguir jugando"
+          onConfirmar={onSalir}
+          onCancelar={() => setPreguntandoSalida(false)}
+        />
+      )}
     </View>
   );
 }

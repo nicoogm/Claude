@@ -100,10 +100,10 @@ El `historial` de eventos es lo que hace posible el deshacer y el resumen final.
 1. **Inicio** — nueva partida / mis listas.
 2. **Configuración** — jugadores, dinero, huecos, opciones.
 3. **Selección de tema** — precargados y propios.
-4. **Subasta** — ítem grande, puja actual + líder, fila de jugadores con dinero
-   y huecos, botones de puja rápida (+1 / +2 / +5), adjudicar, deshacer.
-5. **Resultados** — plantillas lado a lado con lo gastado en cada ítem.
-6. **Veredicto** — todas las plantillas juntas en una pantalla; el grupo debate
+6. **Subasta** — turno actual arriba, lote, importe, mesa, deshacer y salida
+   con confirmación.
+7. **Resultados** — plantillas lado a lado con lo gastado en cada ítem.
+8. **Veredicto** — todas las plantillas juntas en una pantalla; el grupo debate
    y quien lleva el móvil toca la ganadora. No hay votación por turnos.
 
 ## 7. Stack y plan de trabajo

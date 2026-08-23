@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import type { Partida } from '../motor/tipos.ts';
-import { divisaPorId, precio } from '../datos/divisas.ts';
+import { divisaPorId, gastadas, precio } from '../datos/divisas.ts';
 import { C, F, S, colorJugador } from '../ui/tema.ts';
 import { Aparecer, Boton, Pulsable } from '../ui/componentes.tsx';
 
@@ -84,7 +84,7 @@ export default function Votacion({
                   <View style={[S.fila, { justifyContent: 'space-between', marginBottom: 8 }]}>
                     <Text style={{ fontFamily: F.extra, fontSize: 18, color }}>{j.nombre}</Text>
                     <Text style={[S.cifra, { fontSize: 12, color: C.textoDebil }]}>
-                      {precio(gastado, moneda)} gastadas
+                      {precio(gastado, moneda)} {gastadas(moneda)}
                     </Text>
                   </View>
                   {j.plantilla.map((a, k) => (

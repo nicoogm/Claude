@@ -220,3 +220,64 @@ export function Progreso({ hechos, total }: { hechos: number; total: number }) {
     </View>
   );
 }
+
+/** Diálogo de confirmación a pantalla completa, para lo que no tiene vuelta atrás. */
+export function Confirmacion({
+  titulo,
+  texto,
+  confirmar,
+  cancelar,
+  onConfirmar,
+  onCancelar,
+}: {
+  titulo: string;
+  texto: string;
+  confirmar: string;
+  cancelar: string;
+  onConfirmar: () => void;
+  onCancelar: () => void;
+}) {
+  const v = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(v, {
+      toValue: 1,
+      duration: 180,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [v]);
+
+  return (
+    <Animated.View
+      style={{
+        position: 'absolute',
+        top: 0, left: 0, right: 0, bottom: 0,
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 28,
+        backgroundColor: C.tinta + 'E8',
+        opacity: v,
+      }}
+    >
+      <Animated.View
+        style={{
+          alignSelf: 'stretch',
+          transform: [
+            { scale: v.interpolate({ inputRange: [0, 1], outputRange: [0.94, 1] }) },
+          ],
+        }}
+      >
+        <View style={[S.tarjeta, sombra(1), { paddingVertical: 22, gap: 16 }]}>
+          <View style={{ gap: 6 }}>
+            <Text style={{ fontFamily: F.extra, fontSize: 21, color: C.texto }}>{titulo}</Text>
+            <Text style={S.cuerpo}>{texto}</Text>
+          </View>
+          <View style={{ gap: 8 }}>
+            <Boton texto={confirmar} onPress={onConfirmar} variante="secundario" />
+            <Boton texto={cancelar} onPress={onCancelar} />
+          </View>
+        </View>
+      </Animated.View>
+    </Animated.View>
+  );
+}

@@ -1,6 +1,6 @@
 import { ScrollView, Text, View } from 'react-native';
 import type { Partida } from '../motor/tipos.ts';
-import { divisaPorId, precio } from '../datos/divisas.ts';
+import { divisaPorId, gastadas, precio } from '../datos/divisas.ts';
 import { C, F, S, colorJugador } from '../ui/tema.ts';
 import { Aparecer, Boton } from '../ui/componentes.tsx';
 
@@ -27,7 +27,7 @@ export default function Resultados({
         </Text>
         <Text style={[S.cuerpo, { marginTop: 8, marginBottom: 22 }]}>
           {huboRelleno
-            ? 'Los lotes con ✱ se repartieron al quedarse la mesa sin cabras.'
+            ? `Los lotes con ✱ se repartieron al quedarse la mesa sin ${moneda.plural}.`
             : 'Draft completado. Que empiece el debate.'}
         </Text>
       </Aparecer>
@@ -42,7 +42,7 @@ export default function Resultados({
                 <View style={[S.fila, { justifyContent: 'space-between', marginBottom: 12 }]}>
                   <Text style={{ fontFamily: F.extra, fontSize: 19, color }}>{j.nombre}</Text>
                   <Text style={[S.cifra, { fontSize: 13, color: C.textoDebil }]}>
-                    {precio(gastado, moneda)} gastadas · {precio(j.dinero, moneda)} sin usar
+                    {precio(gastado, moneda)} {gastadas(moneda)} · {precio(j.dinero, moneda)} sin usar
                   </Text>
                 </View>
                 <View style={{ gap: 2 }}>

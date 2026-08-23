@@ -1,9 +1,8 @@
-import { useEffect, useState } from 'react';
 import { ScrollView, Text, TextInput, View } from 'react-native';
-import { DIVISAS, divisaPorId } from '../datos/divisas.ts';
-import { guardarAjustes, leerAjustes } from '../estado/preferencias.ts';
+import { divisaPorId, precioLargo } from '../datos/divisas.ts';
 import { C, F, S, colorJugador } from '../ui/tema.ts';
 import { Aparecer, Boton, Pulsable } from '../ui/componentes.tsx';
+import Contador from '../ui/Contador.tsx';
 
 export type Ajustes = {
   nombres: string[];
@@ -13,7 +12,7 @@ export type Ajustes = {
   monedaId: string;
 };
 
-const AJUSTES_INICIALES: Ajustes = {
+export const AJUSTES_INICIALES: Ajustes = {
   nombres: ['', '', ''],
   presupuesto: 20,
   huecos: 3,
@@ -25,87 +24,48 @@ const AJUSTES_INICIALES: Ajustes = {
 export const nombreDe = (nombre: string, i: number) =>
   nombre.trim() || `Jugador ${i + 1}`;
 
-function Contador({
-  etiqueta, ayuda, valor, min, max, onChange,
+/**
+ * Montar la mesa: quiénes juegan y cómo se llaman. Las reglas viven en
+ * Ajustes, así que empezar una partida es escribir nombres y poco más.
+ */
+export default function Configuracion({
+  ajustes,
+  onCambiar,
+  onContinuar,
+  onAjustes,
+  onVolver,
 }: {
-  etiqueta: string; ayuda?: string; valor: number; min: number; max: number;
-  onChange: (v: number) => void;
+  ajustes: Ajustes;
+  onCambiar: (a: Ajustes) => void;
+  onContinuar: (a: Ajustes) => void;
+  onAjustes: () => void;
+  onVolver: () => void;
 }) {
-  const paso = (d: number) => () => onChange(Math.min(max, Math.max(min, valor + d)));
-  const Redondo = ({ signo, onPress, off }: { signo: string; onPress: () => void; off: boolean }) => (
-    <Pulsable onPress={onPress} disabled={off}>
-      <View
-        style={[
-          {
-            width: 40, height: 40, borderRadius: 20, alignItems: 'center',
-            justifyContent: 'center', backgroundColor: C.superficieAlta,
-            borderWidth: 1, borderColor: C.linea,
-          },
-          off && S.desactivado,
-        ]}
-      >
-        <Text style={{ fontFamily: F.extra, fontSize: 19, color: C.texto }}>{signo}</Text>
-      </View>
-    </Pulsable>
-  );
-
-  return (
-    <View style={[S.fila, { justifyContent: 'space-between', paddingVertical: 8 }]}>
-      <View style={{ flex: 1, paddingRight: 12 }}>
-        <Text style={{ fontFamily: F.texto, fontSize: 15, color: C.texto }}>{etiqueta}</Text>
-        {ayuda && (
-          <Text style={{ fontFamily: F.texto, fontSize: 12, color: C.textoDebil, marginTop: 2 }}>
-            {ayuda}
-          </Text>
-        )}
-      </View>
-      <View style={[S.fila, { gap: 12 }]}>
-        <Redondo signo="−" onPress={paso(-1)} off={valor <= min} />
-        <Text style={[S.cifra, { fontSize: 19, minWidth: 34, textAlign: 'center' }]}>{valor}</Text>
-        <Redondo signo="+" onPress={paso(1)} off={valor >= max} />
-      </View>
-    </View>
-  );
-}
-
-export default function Configuracion({ onContinuar }: { onContinuar: (a: Ajustes) => void }) {
-  const [a, setA] = useState<Ajustes>(AJUSTES_INICIALES);
-
-  // Al abrir, se recupera la última mesa: los nombres son lo que más cansa
-  // reescribir cuando se encadenan partidas.
-  useEffect(() => {
-    let vivo = true;
-    leerAjustes().then((guardado) => {
-      if (vivo && guardado) setA((prev) => ({ ...prev, ...guardado }));
-    });
-    return () => {
-      vivo = false;
-    };
-  }, []);
-
-  const set = <K extends keyof Ajustes>(k: K, v: Ajustes[K]) =>
-    setA((prev) => ({ ...prev, [k]: v }));
-
-  // Salen a subasta exactamente tantos lotes como huecos hay en la mesa: todos
-  // acaban adjudicados, así que no hay nada que sobre ni que configurar.
-  const lotes = a.nombres.length * a.huecos;
+  const moneda = divisaPorId(ajustes.monedaId);
+  const lotes = ajustes.nombres.length * ajustes.huecos;
 
   const cambiarNumJugadores = (n: number) => {
-    const nombres = [...a.nombres];
+    const nombres = [...ajustes.nombres];
     while (nombres.length < n) nombres.push('');
-    set('nombres', nombres.slice(0, n));
+    onCambiar({ ...ajustes, nombres: nombres.slice(0, n) });
   };
+
+  const renombrar = (i: number, texto: string) =>
+    onCambiar({
+      ...ajustes,
+      nombres: ajustes.nombres.map((n, k) => (k === i ? texto : n)),
+    });
 
   return (
     <ScrollView style={S.pantalla} contentContainerStyle={[S.contenido, { paddingTop: 12 }]}>
       <Aparecer>
-        <Text style={[S.eyebrow, { color: C.laton }]}>Draft por subasta</Text>
+        <Text style={[S.eyebrow, { color: C.laton }]}>Paso 1 de 2</Text>
         <Text style={[S.cartel, { fontSize: 52, lineHeight: 54, marginTop: 6 }]}>
-          Abrimos la sala
+          ¿Quién juega?
         </Text>
         <Text style={[S.cuerpo, { marginTop: 8, marginBottom: 22 }]}>
-          Un solo móvil hace de mesa. Sale un lote, y por turnos cada uno sube
-          la puja o se planta. El último en pie se lo lleva.
+          Un solo móvil hace de mesa. Sale un lote, y por turnos cada uno sube la
+          puja o se planta. El último en pie se lo lleva.
         </Text>
       </Aparecer>
 
@@ -114,21 +74,19 @@ export default function Configuracion({ onContinuar }: { onContinuar: (a: Ajuste
           <Text style={S.eyebrow}>La mesa</Text>
           <Contador
             etiqueta="Cuántos sois"
-            valor={a.nombres.length} min={2} max={10}
+            valor={ajustes.nombres.length} min={2} max={10}
             onChange={cambiarNumJugadores}
           />
           <View style={{ height: 1, backgroundColor: C.lineaSuave, marginVertical: 10 }} />
           <View style={{ gap: 8 }}>
-            {a.nombres.map((nombre, i) => (
+            {ajustes.nombres.map((nombre, i) => (
               <View key={i} style={S.fila}>
                 <View
                   style={{ width: 3, height: 26, borderRadius: 2, backgroundColor: colorJugador(i) }}
                 />
                 <TextInput
                   value={nombre}
-                  onChangeText={(t) =>
-                    set('nombres', a.nombres.map((n, k) => (k === i ? t : n)))
-                  }
+                  onChangeText={(t) => renombrar(i, t)}
                   placeholder={`Nombre del jugador ${i + 1}`}
                   placeholderTextColor={C.textoDebil}
                   maxLength={14}
@@ -146,79 +104,32 @@ export default function Configuracion({ onContinuar }: { onContinuar: (a: Ajuste
       </Aparecer>
 
       <Aparecer retraso={140}>
-        <View style={[S.tarjeta, { marginBottom: 12 }]}>
-          <Text style={S.eyebrow}>Las reglas</Text>
-          <Text style={[S.cuerpo, { fontSize: 12, marginTop: 2, marginBottom: 6 }]}>
-            ¿En qué se paga?
-          </Text>
-          <View style={[S.fila, { flexWrap: 'wrap', gap: 8, marginBottom: 6 }]}>
-            {DIVISAS.map((d) => {
-              const elegida = d.id === a.monedaId;
-              return (
-                <Pulsable key={d.id} onPress={() => set('monedaId', d.id)}>
-                  <View
-                    style={{
-                      flexDirection: 'row', alignItems: 'center', gap: 6,
-                      paddingHorizontal: 12, paddingVertical: 9, borderRadius: 999,
-                      borderWidth: 1,
-                      borderColor: elegida ? C.laton : C.linea,
-                      backgroundColor: elegida ? C.latonTenue : C.superficieAlta,
-                    }}
-                  >
-                    <Text style={{ fontSize: 15 }}>{d.emoji}</Text>
-                    <Text
-                      style={{
-                        fontFamily: F.fuerte, fontSize: 13,
-                        color: elegida ? C.laton : C.textoSuave,
-                      }}
-                    >
-                      {d.plural}
-                    </Text>
-                  </View>
-                </Pulsable>
-              );
-            })}
+        <Pulsable onPress={onAjustes}>
+          <View style={[S.tarjeta, { marginBottom: 20 }]}>
+            <View style={[S.fila, { justifyContent: 'space-between' }]}>
+              <Text style={S.eyebrow}>Las reglas</Text>
+              <Text style={{ fontFamily: F.fuerte, fontSize: 12, color: C.laton }}>
+                Cambiar →
+              </Text>
+            </View>
+            <Text style={[S.cuerpo, { fontSize: 13, marginTop: 8, lineHeight: 20 }]}>
+              {precioLargo(ajustes.presupuesto, moneda)} {moneda.emoji} por cabeza ·{' '}
+              {ajustes.huecos} huecos · subida mínima {ajustes.incremento}
+            </Text>
+            <Text style={[S.cuerpo, { fontSize: 12, marginTop: 6 }]}>
+              Saldrán <Text style={{ color: C.laton }}>{lotes} lotes</Text>, uno por
+              hueco de la mesa, sorteados entre todos los del tema.
+            </Text>
           </View>
-          <Contador
-            etiqueta="Presupuesto por jugador"
-            ayuda={`${divisaPorId(a.monedaId).plural} para toda la partida`}
-            valor={a.presupuesto} min={3} max={200}
-            onChange={(v) => set('presupuesto', v)}
-          />
-          <Contador
-            etiqueta="Huecos por jugador"
-            ayuda="cuántos lotes hay que llenar"
-            valor={a.huecos} min={1} max={11}
-            onChange={(v) => set('huecos', v)}
-          />
-          <Contador
-            etiqueta="Subida mínima" ayuda="lo que hay que superar al líder" 
-            valor={a.incremento} min={1} max={10}
-            onChange={(v) => set('incremento', v)}
-          />
-        </View>
+        </Pulsable>
       </Aparecer>
 
-      <Aparecer retraso={200}>
-        <View style={[S.tarjeta, { marginBottom: 20 }]}>
-          <Text style={S.eyebrow}>El sorteo</Text>
-          <Text style={[S.cuerpo, { fontSize: 13, marginTop: 6 }]}>
-            Saldrán <Text style={{ color: C.laton }}>{lotes} lotes</Text>, uno por
-            hueco de la mesa, elegidos al azar entre todos los del tema. Cada uno
-            acaba en manos de alguien, así que dos partidas nunca salen iguales.
-          </Text>
-        </View>
-      </Aparecer>
-
-      <Aparecer retraso={250}>
+      <Aparecer retraso={200} style={{ gap: 10 }}>
         <Boton
           texto="Elegir el tema →"
-          onPress={() => {
-            const listos = { ...a, nombres: a.nombres.map(nombreDe) };
-            guardarAjustes(listos);
-            onContinuar(listos);
-          }}
+          onPress={() => onContinuar({ ...ajustes, nombres: ajustes.nombres.map(nombreDe) })}
         />
+        <Boton texto="← Menú" onPress={onVolver} variante="fantasma" />
       </Aparecer>
     </ScrollView>
   );
