@@ -38,14 +38,14 @@ CONFIG → ELEGIR TEMA → [ SUBASTA_ÍTEM → ADJUDICACIÓN ]×N → AUTO-RELLE
 
 **Subasta de un lote, por turnos**
 1. La app muestra el lote y, arriba del todo, de quién es el turno.
-2. Ese jugador elige: **subir** (desde 1 si el lote está sin abrir, o desde la
-   puja actual más el incremento) o **plantarse**, que le deja fuera de ese
-   lote —no de la partida.
+2. **Quien abre el lote está obligado a pujar**: pone 1 como mínimo, no puede
+   pasar. A partir de ahí, cada uno elige entre **subir** (la puja actual más
+   el incremento) o **plantarse**, que le deja fuera de ese lote —no de la
+   partida.
 3. El turno pasa al siguiente que siga vivo en el lote, saltándose al líder:
    nadie se puja a sí mismo.
 4. Cuando todos los rivales se han plantado, el lote se adjudica al líder.
-5. Si todos se plantan sin pujar, el lote cae en el último que quedaba por
-   decidir, por la puja mínima: no hay a quién pasárselo.
+5. Como el que abre siempre puja, ningún lote se queda sin dueño.
 6. **El jugador que abre la puja rota en cada lote**, y siempre se abre desde la
    puja mínima.
 7. **Si solo queda uno que pueda pujar** —porque el resto tiene la plantilla
@@ -120,6 +120,13 @@ Fases:
 4. Temas precargados + editor de listas propias.
 5. Resultados y votación.
 6. Pulido: animaciones, sonido de martillo, compartir resultado como imagen.
+
+## 7.bis Partida guardada
+
+La partida en curso se guarda en el móvil tras cada acción. Si se cierra la
+app, el móvil la mata en segundo plano o se recarga la página, el menú ofrece
+**Continuar partida** con un resumen (quiénes juegan y por qué lote van).
+Empezar una partida nueva descarta la guardada: solo cabe una.
 
 ## 8. Fuera del alcance de la v1
 

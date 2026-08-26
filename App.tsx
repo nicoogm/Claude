@@ -18,9 +18,14 @@ import Subasta from './src/pantallas/Subasta.tsx';
 import Resultados from './src/pantallas/Resultados.tsx';
 import Votacion from './src/pantallas/Votacion.tsx';
 import { usePartida } from './src/estado/partida.ts';
-import { guardarAjustes, leerAjustes } from './src/estado/preferencias.ts';
+import {
+  borrarPartida,
+  guardarAjustes,
+  leerAjustes,
+  leerPartida,
+} from './src/estado/preferencias.ts';
 import { sortearItems } from './src/motor/motor.ts';
-import type { Tema } from './src/motor/tipos.ts';
+import type { Partida, Tema } from './src/motor/tipos.ts';
 import { C } from './src/ui/tema.ts';
 import { Aparecer } from './src/ui/componentes.tsx';
 
@@ -31,7 +36,9 @@ export default function App() {
   const [ajustes, setAjustes] = useState<Ajustes>(AJUSTES_INICIALES);
   // Desde dónde se abrió Ajustes, para devolver al jugador a su sitio.
   const [vueltaDeAjustes, setVueltaDeAjustes] = useState<Vista>('menu');
-  const { partida, iniciar, salir } = usePartida();
+  const { partida, iniciar, retomar, salir } = usePartida();
+  // Partida guardada de una sesión anterior, aún sin retomar.
+  const [guardada, setGuardada] = useState<Partida | null>(null);
 
   const [fuentesListas] = useFonts({
     BebasNeue_400Regular,
@@ -45,6 +52,9 @@ export default function App() {
     let vivo = true;
     leerAjustes().then((guardado) => {
       if (vivo && guardado) setAjustes((prev) => ({ ...prev, ...guardado }));
+    });
+    leerPartida().then((p) => {
+      if (vivo) setGuardada(p);
     });
     return () => {
       vivo = false;
@@ -78,8 +88,27 @@ export default function App() {
 
   const volverAlMenu = () => {
     salir();
+    setGuardada(null);
     setVista('menu');
   };
+
+  /** Retoma la partida guardada justo donde se quedó. */
+  const continuar = () => {
+    if (!guardada) return;
+    retomar(guardada);
+    setGuardada(null);
+    setVista('juego');
+  };
+
+  /** Texto de la tarjeta de continuar: por dónde iba la partida. */
+  const resumenGuardada = (() => {
+    if (!guardada) return null;
+    const nombres = guardada.jugadores.map((j) => j.nombre).join(', ');
+    if (guardada.fase === 'resultados') return `${nombres} · pendiente el veredicto`;
+    const total = guardada.config.huecos * guardada.jugadores.length;
+    const hechos = guardada.jugadores.reduce((s, j) => s + j.plantilla.length, 0);
+    return `${nombres} · lote ${Math.min(hechos + 1, total)} de ${total}`;
+  })();
 
   const abrirAjustes = (desde: Vista) => {
     setVueltaDeAjustes(desde);
@@ -103,8 +132,15 @@ export default function App() {
       <Aparecer key={clave} desplazamiento={10} style={{ flex: 1 }}>
         {vista === 'menu' && (
           <Menu
+            continuar={resumenGuardada}
             onIr={(clave) => {
-              if (clave === 'jugar') setVista('config');
+              if (clave === 'continuar') continuar();
+              if (clave === 'jugar') {
+                // Empezar de cero descarta la guardada: solo cabe una partida.
+                borrarPartida();
+                setGuardada(null);
+                setVista('config');
+              }
               if (clave === 'reglas') setVista('reglas');
               if (clave === 'ajustes') abrirAjustes('menu');
             }}

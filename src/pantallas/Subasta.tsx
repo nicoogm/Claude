@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, ScrollView, Text, View } from 'react-native';
-import { huecosLibres, pujaMinimaActual } from '../motor/motor.ts';
+import { huecosLibres, puedePasar, pujaMinimaActual } from '../motor/motor.ts';
 import type { Partida } from '../motor/tipos.ts';
 import { usePartida } from '../estado/partida.ts';
 import { articulo, divisaPorId, gastadas, precio, precioLargo } from '../datos/divisas.ts';
@@ -131,10 +131,8 @@ export default function Subasta({
     return rivales.length === 0;
   })();
 
-  // Sin pujas y siendo el último por decidir, el lote le cae a él por la
-  // mínima: conviene que lo sepa antes de darle a plantarse.
-  const ultimoEnDecidir =
-    !lider && subasta.activos.filter((id) => id !== deTurno.id).length === 0;
+  // Quien abre el lote no puede plantarse: está obligado a poner la mínima.
+  const puedePlantarse = puedePasar(partida, deTurno.id);
 
   const plantarse = () => {
     if (cierraElLote && lider) {
@@ -358,17 +356,17 @@ export default function Subasta({
             {deTurno.nombre} no llega a {precioLargo(minimo, moneda)}.
           </Text>
         )}
-        <Boton
-          texto={
-            lider
-              ? `Me planto · ${cierraElLote ? 'cierra el lote' : 'no sigo'}`
-              : ultimoEnDecidir
-                ? 'Si paso, el lote es mío igualmente'
-                : 'Paso de este lote'
-          }
-          onPress={plantarse}
-          variante="secundario"
-        />
+        {puedePlantarse ? (
+          <Boton
+            texto={`Me planto · ${cierraElLote ? 'cierra el lote' : 'no sigo'}`}
+            onPress={plantarse}
+            variante="secundario"
+          />
+        ) : (
+          <Text style={[S.cuerpo, { textAlign: 'center', fontSize: 12 }]}>
+            {deTurno.nombre} abre el lote: hay que pujar, no se puede pasar.
+          </Text>
+        )}
       </View>
 
       {remate && <SelloRemate remate={remate} onFin={() => setRemate(null)} />}

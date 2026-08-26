@@ -10,13 +10,30 @@ type Entrada = {
   destacada?: boolean;
 };
 
-const ENTRADAS: Entrada[] = [
-  { clave: 'jugar', titulo: 'Jugar', ayuda: 'Montar la mesa y abrir la sala', icono: '🔨', destacada: true },
+const entradas = (continuar: string | null): Entrada[] => [
+  ...(continuar
+    ? [{ clave: 'continuar', titulo: 'Continuar partida', ayuda: continuar, icono: '⏳', destacada: true }]
+    : []),
+  {
+    clave: 'jugar',
+    titulo: continuar ? 'Partida nueva' : 'Jugar',
+    ayuda: 'Montar la mesa y abrir la sala',
+    icono: '🔨',
+    destacada: !continuar,
+  },
   { clave: 'reglas', titulo: 'Cómo se juega', ayuda: 'Las reglas en un minuto', icono: '📜' },
   { clave: 'ajustes', titulo: 'Ajustes', ayuda: 'Divisa, presupuesto y huecos', icono: '⚙️' },
 ];
 
-export default function Menu({ onIr }: { onIr: (clave: string) => void }) {
+export default function Menu({
+  continuar,
+  onIr,
+}: {
+  /** Resumen de la partida guardada, o null si no hay ninguna. */
+  continuar: string | null;
+  onIr: (clave: string) => void;
+}) {
+  const ENTRADAS = entradas(continuar);
   return (
     <View style={[S.pantalla, { paddingHorizontal: 20, justifyContent: 'center' }]}>
       <Aparecer desplazamiento={18}>

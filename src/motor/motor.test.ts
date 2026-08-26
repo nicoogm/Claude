@@ -9,6 +9,7 @@ import {
   pasar,
   puedePujar,
   pujar,
+  puedePasar,
   pujaMinimaActual,
   sortearItems,
 } from './motor.ts';
@@ -34,10 +35,9 @@ const j = (p: Partida, id: string) => p.jugadores.find((x) => x.id === id)!;
 const turno = (p: Partida) => p.subasta?.turno;
 
 /**
- * Atajo para los tests: los que van antes en el turno se plantan, `ganador`
- * abre con `precio` y el resto se planta hasta que el lote se cierra. Si al
- * plantarse los demás el lote le cae forzado antes de su turno, también vale:
- * el resultado es el mismo, se lo queda él.
+ * Atajo para los tests: quien abre el lote está obligado a pujar, así que si
+ * no es `ganador` abre por el mínimo; los de en medio se plantan, `ganador`
+ * sube a `precio` y el resto se planta hasta que el lote se cierra.
  */
 const compra = (p: Partida, ganador: string, precio: number) => {
   const lote = p.subasta!.item.id;
@@ -46,12 +46,13 @@ const compra = (p: Partida, ganador: string, precio: number) => {
     q.jugadores.find((x) => x.id === ganador)!.plantilla.at(-1)?.item.id === lote;
 
   let q = p;
+  if (q.subasta!.turno !== ganador) q = pujar(q, q.subasta!.turno, q.config.pujaMin);
   while (mismoLote(q) && q.subasta!.turno !== ganador) q = pasar(q, q.subasta!.turno);
   if (!mismoLote(q)) {
     if (!seLoLlevo(q)) throw new Error(`El lote se cerró y no fue para ${ganador}`);
     return q;
   }
-  q = pujar(q, ganador, precio);
+  q = pujar(q, ganador, Math.max(precio, pujaMinimaActual(q)));
   while (mismoLote(q)) q = pasar(q, q.subasta!.turno);
   return q;
 };
@@ -76,8 +77,9 @@ describe('turnos y rotación', () => {
   });
 
   it('el turno avanza al siguiente tras plantarse', () => {
-    const p = pasar(nueva(), 'j1');
-    assert.equal(turno(p), 'j2');
+    let p = pujar(nueva(), 'j1', 1);   // Ana abre, obligada
+    p = pasar(p, 'j2');
+    assert.equal(turno(p), 'j3');
   });
 
   it('da la vuelta al orden circularmente', () => {
@@ -156,16 +158,14 @@ describe('cierre del lote', () => {
     assert.equal(turno(p), 'j3'); // no vuelve a j1
   });
 
-  it('si nadie puja, el lote cae en el último que quedaba por decidir', () => {
-    let p = nueva();
-    p = pasar(p, 'j1');
-    p = pasar(p, 'j2');
-    // A Caj ya no se le pregunta: es la única que queda, así que es suyo.
-    assert.equal(p.descartados.length, 0);
-    assert.deepEqual(j(p, 'j3').plantilla.map((a) => a.item.id), ['i1']);
-    assert.equal(j(p, 'j3').plantilla[0].modo, 'forzado');
-    assert.equal(j(p, 'j3').dinero, 19);
-    assert.equal(p.subasta?.item.id, 'i2');
+  it('quien abre el lote no puede plantarse: tiene que pujar', () => {
+    const p = nueva();
+    assert.equal(puedePasar(p, 'j1'), false);
+    assert.throws(() => pasar(p, 'j1'), /tiene que pujar/);
+    // En cuanto hay una puja sobre la mesa, los demás sí pueden plantarse.
+    const q = pujar(p, 'j1', 1);
+    assert.equal(puedePasar(q, 'j2'), true);
+    assert.equal(puedePasar(q, 'j1'), false); // no es su turno
   });
 
   it('deja fuera del lote a quien no llega al mínimo', () => {

@@ -109,11 +109,27 @@ export function pujar(p: Partida, jugadorId: string, importe: number): Partida {
   });
 }
 
+/**
+ * Quien abre el lote no puede pasar: mientras nadie haya pujado, el que tiene
+ * el turno está obligado a poner al menos la puja mínima.
+ */
+export function puedePasar(p: Partida, jugadorId: string): boolean {
+  return (
+    p.fase === 'subasta' &&
+    p.subasta !== null &&
+    p.subasta.turno === jugadorId &&
+    p.subasta.lider !== null
+  );
+}
+
 /** El jugador se planta: deja de pujar por este lote (no por la partida). */
 export function pasar(p: Partida, jugadorId: string): Partida {
   if (!p.subasta) throw new Error('No hay subasta abierta');
   if (p.subasta.turno !== jugadorId) {
     throw new Error(`No es el turno de ${jugadorId}`);
+  }
+  if (p.subasta.lider === null) {
+    throw new Error('Quien abre el lote tiene que pujar');
   }
   return pasarElTurno({
     ...p,
